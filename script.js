@@ -63,6 +63,92 @@
 // ---- Footer year ----
 document.getElementById('year').textContent = new Date().getFullYear();
 
+// ---- Scroll reveal ----
+(function(){
+  const items = document.querySelectorAll('.reveal');
+  if(!items.length) return;
+  if(!('IntersectionObserver' in window)){
+    items.forEach(el => el.classList.add('in-view'));
+    return;
+  }
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      if(entry.isIntersecting){
+        entry.target.classList.add('in-view');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+  items.forEach(el => io.observe(el));
+})();
+
+// ---- Gallery lightbox ----
+(function(){
+  const grid = document.getElementById('gallery-grid');
+  const lightbox = document.getElementById('lightbox');
+  if(!grid || !lightbox) return;
+
+  const figures = Array.from(grid.querySelectorAll('.gallery-item'));
+  const lbImg = document.getElementById('lightbox-img');
+  const lbCaption = document.getElementById('lightbox-caption');
+  const btnClose = document.getElementById('lightbox-close');
+  const btnPrev = document.getElementById('lightbox-prev');
+  const btnNext = document.getElementById('lightbox-next');
+  let currentIndex = 0;
+  let lastFocused = null;
+
+  function show(index){
+    currentIndex = (index + figures.length) % figures.length;
+    const fig = figures[currentIndex];
+    const img = fig.querySelector('img');
+    const caption = fig.querySelector('figcaption');
+    lbImg.src = img.src;
+    lbImg.alt = img.alt;
+    lbCaption.textContent = caption ? caption.textContent : '';
+  }
+
+  function open(index){
+    lastFocused = document.activeElement;
+    show(index);
+    lightbox.classList.add('open');
+    lightbox.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    btnClose.focus();
+  }
+
+  function close(){
+    lightbox.classList.remove('open');
+    lightbox.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    if(lastFocused) lastFocused.focus();
+  }
+
+  figures.forEach((fig, i)=>{
+    fig.addEventListener('click', ()=> open(i));
+    fig.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter' || e.key === ' '){
+        e.preventDefault();
+        open(i);
+      }
+    });
+  });
+
+  btnClose.addEventListener('click', close);
+  btnPrev.addEventListener('click', ()=> show(currentIndex - 1));
+  btnNext.addEventListener('click', ()=> show(currentIndex + 1));
+
+  lightbox.addEventListener('click', (e)=>{
+    if(e.target === lightbox) close();
+  });
+
+  document.addEventListener('keydown', (e)=>{
+    if(!lightbox.classList.contains('open')) return;
+    if(e.key === 'Escape') close();
+    if(e.key === 'ArrowLeft') show(currentIndex - 1);
+    if(e.key === 'ArrowRight') show(currentIndex + 1);
+  });
+})();
+
 // ---- Quote form ----
 (function(){
   const form = document.getElementById('quote-form');
