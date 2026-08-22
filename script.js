@@ -1,4 +1,3 @@
-// Before / after comparison
 (() => {
   const slider = document.querySelector('#hero-slider');
   if (!slider) return;
@@ -52,7 +51,6 @@
   update(50);
 })();
 
-// Navigation and sticky-header feedback
 (() => {
   const toggle = document.querySelector('#nav-toggle');
   const nav = document.querySelector('#main-nav');
@@ -87,7 +85,6 @@
   window.addEventListener('scroll', updateHeader, { passive: true });
 })();
 
-// Reveal elements as they enter the viewport
 (() => {
   const elements = document.querySelectorAll('.reveal');
   if (!elements.length) return;
@@ -107,7 +104,6 @@
   elements.forEach((element) => observer.observe(element));
 })();
 
-// Accessible project gallery lightbox
 (() => {
   const lightbox = document.querySelector('#lightbox');
   const grid = document.querySelector('#gallery-grid');
@@ -174,7 +170,6 @@
   });
 })();
 
-// Quote request handoff
 (() => {
   const form = document.querySelector('#quote-form');
   if (!form) return;
@@ -182,7 +177,7 @@
     event.preventDefault();
     const data = new FormData(form);
     const field = (name) => String(data.get(name) || '').trim();
-    const subject = encodeURIComponent(`Free Quote Request — ${field('name')}`);
+    const subject = encodeURIComponent(`Free Quote Request - ${field('name')}`);
     const body = encodeURIComponent([
       `Name: ${field('name')}`,
       `Phone: ${field('phone')}`,
