@@ -1,172 +1,201 @@
-// ---- Before / After drag slider ----
-(function(){
-  const slider = document.getElementById('hero-slider');
-  if(!slider) return;
+// Before / after comparison
+(() => {
+  const slider = document.querySelector('#hero-slider');
+  if (!slider) return;
+
   const clip = slider.querySelector('.ba-clip');
+  const beforeImage = clip.querySelector('.ba-before');
   const handle = slider.querySelector('.ba-handle');
+  let value = 50;
   let dragging = false;
 
-  function setPosition(clientX){
+  const update = (nextValue) => {
+    value = Math.max(0, Math.min(100, Math.round(nextValue)));
+    clip.style.width = `${value}%`;
+    beforeImage.style.width = `${slider.getBoundingClientRect().width}px`;
+    handle.style.left = `${value}%`;
+    slider.setAttribute('aria-valuenow', String(value));
+    slider.setAttribute('aria-valuetext', `${value} percent before image`);
+  };
+
+  const updateFromPointer = (event) => {
     const rect = slider.getBoundingClientRect();
-    let pct = ((clientX - rect.left) / rect.width) * 100;
-    pct = Math.max(0, Math.min(100, pct));
-    clip.style.width = pct + '%';
-    handle.style.left = pct + '%';
-  }
+    update(((event.clientX - rect.left) / rect.width) * 100);
+  };
 
-  function start(e){
+  slider.addEventListener('pointerdown', (event) => {
     dragging = true;
-    slider.classList.add('dragging');
-  }
-  function stop(){
+    slider.setPointerCapture(event.pointerId);
+    updateFromPointer(event);
+  });
+  slider.addEventListener('pointermove', (event) => {
+    if (dragging) updateFromPointer(event);
+  });
+  slider.addEventListener('pointerup', (event) => {
     dragging = false;
-    slider.classList.remove('dragging');
-  }
-  function move(e){
-    if(!dragging) return;
-    const x = e.touches ? e.touches[0].clientX : e.clientX;
-    setPosition(x);
-  }
-
-  slider.addEventListener('mousedown', (e)=>{ start(); setPosition(e.clientX); });
-  window.addEventListener('mouseup', stop);
-  window.addEventListener('mousemove', move);
-
-  slider.addEventListener('touchstart', (e)=>{ start(); setPosition(e.touches[0].clientX); }, {passive:true});
-  window.addEventListener('touchend', stop);
-  window.addEventListener('touchmove', move, {passive:true});
-
-  // gentle auto-demo on load: sweep once so people notice it's interactive
-  let demoStep = 0;
-  const demo = setInterval(()=>{
-    demoStep++;
-    const pct = 50 + Math.sin(demoStep/6) * 18;
-    if(!dragging) { clip.style.width = pct + '%'; handle.style.left = pct + '%'; }
-    if(demoStep > 40){ clearInterval(demo); clip.style.width='50%'; handle.style.left='50%'; }
-  }, 40);
+    slider.releasePointerCapture(event.pointerId);
+  });
+  slider.addEventListener('pointercancel', () => { dragging = false; });
+  slider.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      update(value - (event.shiftKey ? 10 : 2));
+    }
+    if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      update(value + (event.shiftKey ? 10 : 2));
+    }
+    if (event.key === 'Home') update(0);
+    if (event.key === 'End') update(100);
+  });
+  window.addEventListener('resize', () => update(value));
+  update(50);
 })();
 
-// ---- Mobile nav toggle ----
-(function(){
-  const toggle = document.getElementById('nav-toggle');
-  const nav = document.getElementById('main-nav');
-  if(!toggle || !nav) return;
-  toggle.addEventListener('click', ()=>{
-    const open = nav.classList.toggle('open');
-    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-  });
-  nav.querySelectorAll('a').forEach(link=>{
-    link.addEventListener('click', ()=> nav.classList.remove('open'));
-  });
+// Navigation and sticky-header feedback
+(() => {
+  const toggle = document.querySelector('#nav-toggle');
+  const nav = document.querySelector('#main-nav');
+  const header = document.querySelector('#site-header');
+
+  const closeNav = () => {
+    if (!toggle || !nav) return;
+    nav.classList.remove('open');
+    toggle.classList.remove('active');
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-label', 'Open navigation');
+    document.body.classList.remove('nav-open');
+  };
+
+  if (toggle && nav) {
+    toggle.addEventListener('click', () => {
+      const open = !nav.classList.contains('open');
+      nav.classList.toggle('open', open);
+      toggle.classList.toggle('active', open);
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+      document.body.classList.toggle('nav-open', open);
+    });
+    nav.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeNav));
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeNav();
+    });
+  }
+
+  const updateHeader = () => header?.classList.toggle('scrolled', window.scrollY > 20);
+  updateHeader();
+  window.addEventListener('scroll', updateHeader, { passive: true });
 })();
 
-// ---- Footer year ----
-document.getElementById('year').textContent = new Date().getFullYear();
-
-// ---- Scroll reveal ----
-(function(){
-  const items = document.querySelectorAll('.reveal');
-  if(!items.length) return;
-  if(!('IntersectionObserver' in window)){
-    items.forEach(el => el.classList.add('in-view'));
+// Reveal elements as they enter the viewport
+(() => {
+  const elements = document.querySelectorAll('.reveal');
+  if (!elements.length) return;
+  if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    elements.forEach((element) => element.classList.add('in-view'));
     return;
   }
-  const io = new IntersectionObserver((entries)=>{
-    entries.forEach(entry=>{
-      if(entry.isIntersecting){
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
         entry.target.classList.add('in-view');
-        io.unobserve(entry.target);
+        observer.unobserve(entry.target);
       }
     });
-  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
-  items.forEach(el => io.observe(el));
+  }, { threshold: 0.12, rootMargin: '0px 0px -35px' });
+  elements.forEach((element) => observer.observe(element));
 })();
 
-// ---- Gallery lightbox ----
-(function(){
-  const grid = document.getElementById('gallery-grid');
-  const lightbox = document.getElementById('lightbox');
-  if(!grid || !lightbox) return;
+// Accessible project gallery lightbox
+(() => {
+  const lightbox = document.querySelector('#lightbox');
+  const grid = document.querySelector('#gallery-grid');
+  if (!lightbox || !grid) return;
 
-  const figures = Array.from(grid.querySelectorAll('.gallery-item'));
-  const lbImg = document.getElementById('lightbox-img');
-  const lbCaption = document.getElementById('lightbox-caption');
-  const btnClose = document.getElementById('lightbox-close');
-  const btnPrev = document.getElementById('lightbox-prev');
-  const btnNext = document.getElementById('lightbox-next');
+  const figures = [...grid.querySelectorAll('.gallery-item')];
+  const image = lightbox.querySelector('#lightbox-img');
+  const caption = lightbox.querySelector('#lightbox-caption');
+  const closeButton = lightbox.querySelector('#lightbox-close');
+  const previousButton = lightbox.querySelector('#lightbox-prev');
+  const nextButton = lightbox.querySelector('#lightbox-next');
   let currentIndex = 0;
-  let lastFocused = null;
+  let returnFocus = null;
 
-  function show(index){
+  const show = (index) => {
     currentIndex = (index + figures.length) % figures.length;
-    const fig = figures[currentIndex];
-    const img = fig.querySelector('img');
-    const caption = fig.querySelector('figcaption');
-    lbImg.src = img.src;
-    lbImg.alt = img.alt;
-    lbCaption.textContent = caption ? caption.textContent : '';
-  }
+    const figure = figures[currentIndex];
+    const source = figure.querySelector('img');
+    image.src = source.src;
+    image.alt = source.alt;
+    caption.textContent = figure.querySelector('figcaption')?.textContent.trim() || '';
+  };
 
-  function open(index){
-    lastFocused = document.activeElement;
+  const open = (index) => {
+    returnFocus = document.activeElement;
     show(index);
     lightbox.classList.add('open');
     lightbox.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden';
-    btnClose.focus();
-  }
+    document.body.classList.add('lightbox-open');
+    closeButton.focus();
+  };
 
-  function close(){
+  const close = () => {
     lightbox.classList.remove('open');
     lightbox.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
-    if(lastFocused) lastFocused.focus();
-  }
+    document.body.classList.remove('lightbox-open');
+    returnFocus?.focus();
+  };
 
-  figures.forEach((fig, i)=>{
-    fig.addEventListener('click', ()=> open(i));
-    fig.addEventListener('keydown', (e)=>{
-      if(e.key === 'Enter' || e.key === ' '){
-        e.preventDefault();
-        open(i);
+  figures.forEach((figure, index) => {
+    figure.addEventListener('click', () => open(index));
+    figure.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        open(index);
       }
     });
   });
-
-  btnClose.addEventListener('click', close);
-  btnPrev.addEventListener('click', ()=> show(currentIndex - 1));
-  btnNext.addEventListener('click', ()=> show(currentIndex + 1));
-
-  lightbox.addEventListener('click', (e)=>{
-    if(e.target === lightbox) close();
-  });
-
-  document.addEventListener('keydown', (e)=>{
-    if(!lightbox.classList.contains('open')) return;
-    if(e.key === 'Escape') close();
-    if(e.key === 'ArrowLeft') show(currentIndex - 1);
-    if(e.key === 'ArrowRight') show(currentIndex + 1);
+  closeButton.addEventListener('click', close);
+  previousButton.addEventListener('click', () => show(currentIndex - 1));
+  nextButton.addEventListener('click', () => show(currentIndex + 1));
+  lightbox.addEventListener('click', (event) => { if (event.target === lightbox) close(); });
+  document.addEventListener('keydown', (event) => {
+    if (!lightbox.classList.contains('open')) return;
+    if (event.key === 'Escape') close();
+    if (event.key === 'ArrowLeft') show(currentIndex - 1);
+    if (event.key === 'ArrowRight') show(currentIndex + 1);
+    if (event.key === 'Tab') {
+      const controls = [closeButton, previousButton, nextButton];
+      const current = controls.indexOf(document.activeElement);
+      if (event.shiftKey && current <= 0) { event.preventDefault(); controls.at(-1).focus(); }
+      if (!event.shiftKey && current === controls.length - 1) { event.preventDefault(); controls[0].focus(); }
+    }
   });
 })();
 
-// ---- Quote form ----
-(function(){
-  const form = document.getElementById('quote-form');
-  if(!form) return;
-  form.addEventListener('submit', function(e){
-    e.preventDefault();
+// Quote request handoff
+(() => {
+  const form = document.querySelector('#quote-form');
+  if (!form) return;
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
     const data = new FormData(form);
-    const name = data.get('name') || '';
-    const phone = data.get('phone') || '';
-    const email = data.get('email') || '';
-    const address = data.get('address') || '';
-    const service = data.get('service') || '';
-    const message = data.get('message') || '';
-
-    const subject = encodeURIComponent(`Free Quote Request — ${name}`);
-    const body = encodeURIComponent(
-      `Name: ${name}\nPhone: ${phone}\nEmail: ${email}\nAddress/Area: ${address}\nService: ${service}\n\nDetails:\n${message}`
-    );
+    const field = (name) => String(data.get(name) || '').trim();
+    const subject = encodeURIComponent(`Free Quote Request — ${field('name')}`);
+    const body = encodeURIComponent([
+      `Name: ${field('name')}`,
+      `Phone: ${field('phone')}`,
+      `Email: ${field('email')}`,
+      `Address/Area: ${field('address')}`,
+      `Service: ${field('service')}`,
+      '',
+      'Details:',
+      field('message')
+    ].join('\n'));
     window.location.href = `mailto:awngeaux@gmail.com?subject=${subject}&body=${body}`;
   });
 })();
+
+const year = document.querySelector('#year');
+if (year) year.textContent = new Date().getFullYear();
