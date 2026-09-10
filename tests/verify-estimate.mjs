@@ -12,7 +12,7 @@ const validEstimate = {
   address: '123 Main St, Gonzales',
   service: 'House / siding washing',
   message: 'North side has mildew.',
-  website: '',
+  _honey: '',
 };
 
 assert.deepEqual(validateEstimate(validEstimate), {}, 'a complete estimate should be accepted');
@@ -38,7 +38,7 @@ assert.deepEqual(
     address: '123 Main St, Gonzales',
     service: 'House / siding washing',
     message: 'North side has mildew.',
-    website: '',
+    _honey: '',
   },
   'the email payload should contain the customer details and a useful subject',
 );

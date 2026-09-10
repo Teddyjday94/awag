@@ -22,12 +22,12 @@ export function buildEstimatePayload(fields) {
     address: clean(fields.address),
     service: clean(fields.service),
     message: clean(fields.message),
-    website: clean(fields.website),
+    _honey: clean(fields._honey),
   };
 }
 
 export async function submitEstimateRequest(fields, fetchImpl = fetch) {
-  if (clean(fields.website)) return { ok: true };
+  if (clean(fields._honey)) return { ok: true };
 
   const errors = validateEstimate(fields);
   if (Object.keys(errors).length) {
