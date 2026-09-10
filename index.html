@@ -203,15 +203,17 @@
             <a href="https://www.facebook.com/ascensionwashngeaux" target="_blank" rel="noopener"><span aria-hidden="true">f</span><div><small>Facebook</small><strong>Ascension Wash N' Geaux</strong></div></a>
           </div>
         </div>
-        <form class="quote-form" id="quote-form">
+        <form class="quote-form" id="quote-form" action="https://formsubmit.co/thomasdbiz26@gmail.com" method="POST">
           <div class="form-heading"><span>Free estimate request</span><strong>Usually answered the same day.</strong></div>
           <div class="form-row"><label>Name<input name="name" type="text" autocomplete="name" placeholder="Your name" required></label><label>Phone<input name="phone" type="tel" autocomplete="tel" placeholder="(225) 555-0100" required></label></div>
           <label>Email<input name="email" type="email" autocomplete="email" placeholder="you@email.com"></label>
           <label>Property address / area<input name="address" type="text" autocomplete="street-address" placeholder="Street, city"></label>
-          <label>What needs cleaning?<select name="service"><option value="">Select a service</option><option>Roof soft washing</option><option>House / siding washing</option><option>Driveway or sidewalk</option><option>Fence or deck</option><option>Commercial property</option><option>Not sure, need advice</option></select></label>
+          <label>What needs cleaning?<select name="service" required><option value="">Select a service</option><option>Roof soft washing</option><option>House / siding washing</option><option>Driveway or sidewalk</option><option>Fence or deck</option><option>Commercial property</option><option>Not sure, need advice</option></select></label>
           <label>Anything else we should know?<textarea name="message" rows="4" placeholder="Square footage, stains, timeline..."></textarea></label>
+          <label class="form-honeypot" aria-hidden="true">Leave this field empty<input name="website" type="text" tabindex="-1" autocomplete="off"></label>
           <button class="btn btn-primary btn-full" type="submit">Request my free quote <span aria-hidden="true">→</span></button>
-          <p class="form-note">Submitting opens your email app with the details filled in.</p>
+          <p class="form-note">Your request is sent securely without opening another app.</p>
+          <p class="form-status" id="quote-form-status" role="status" aria-live="polite"></p>
         </form>
       </div>
     </section>
@@ -228,5 +230,6 @@
 
   <div class="mobile-action-bar" aria-label="Quick contact actions"><a href="tel:+12259541848">Call now</a><a href="#quote">Free quote</a></div>
   <script src="script.js"></script>
+  <script type="module" src="estimate-form.mjs"></script>
 </body>
 </html>

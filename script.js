@@ -170,27 +170,5 @@
   });
 })();
 
-(() => {
-  const form = document.querySelector('#quote-form');
-  if (!form) return;
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
-    const data = new FormData(form);
-    const field = (name) => String(data.get(name) || '').trim();
-    const subject = encodeURIComponent(`Free Quote Request - ${field('name')}`);
-    const body = encodeURIComponent([
-      `Name: ${field('name')}`,
-      `Phone: ${field('phone')}`,
-      `Email: ${field('email')}`,
-      `Address/Area: ${field('address')}`,
-      `Service: ${field('service')}`,
-      '',
-      'Details:',
-      field('message')
-    ].join('\n'));
-    window.location.href = `mailto:awngeaux@gmail.com?subject=${subject}&body=${body}`;
-  });
-})();
-
 const year = document.querySelector('#year');
 if (year) year.textContent = new Date().getFullYear();
