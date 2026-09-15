@@ -114,9 +114,113 @@ function setupScrollEffects(document, window) {
   window.addEventListener('resize', requestUpdate, { passive: true });
 }
 
+async function setupHeroBackgroundVideo(document, window) {
+  const hero = document.querySelector('.hero');
+  if (!hero || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  if (!document.querySelector('#hero-video-styles')) {
+    const style = document.createElement('style');
+    style.id = 'hero-video-styles';
+    style.textContent = `
+      .hero { isolation: isolate; }
+      .hero-bg-video,
+      .hero-bg-video-overlay {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 0;
+      }
+      .hero-bg-video {
+        object-fit: cover;
+        object-position: center;
+        opacity: 0;
+        transform: scale(1.02);
+        filter: saturate(.86) contrast(.96);
+        transition: opacity .8s ease;
+      }
+      .hero-bg-video.ready { opacity: .36; }
+      .hero-bg-video-overlay {
+        background: linear-gradient(127deg, rgba(6,27,62,.86) 0%, rgba(11,46,107,.77) 48%, rgba(11,105,207,.62) 100%);
+      }
+      .hero::before,
+      .hero-orbit { z-index: 1; }
+      .hero-grid { z-index: 2; }
+      .hero-swoop { z-index: 3; }
+      @media (max-width: 768px) {
+        .hero-bg-video.ready { opacity: .30; }
+        .hero-bg-video-overlay {
+          background: linear-gradient(127deg, rgba(6,27,62,.90) 0%, rgba(11,46,107,.83) 55%, rgba(11,105,207,.70) 100%);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .hero-bg-video { display: none; }
+      }
+    `;
+    document.head.append(style);
+  }
+
+  const video = document.createElement('video');
+  video.className = 'hero-bg-video';
+  video.muted = true;
+  video.autoplay = true;
+  video.loop = true;
+  video.playsInline = true;
+  video.preload = 'none';
+  video.setAttribute('muted', '');
+  video.setAttribute('playsinline', '');
+  video.setAttribute('aria-hidden', 'true');
+  video.disablePictureInPicture = true;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'hero-bg-video-overlay';
+  overlay.setAttribute('aria-hidden', 'true');
+
+  hero.prepend(overlay);
+  hero.prepend(video);
+
+  const parts = Array.from(
+    { length: 9 },
+    (_, index) => `assets/video/hero-bg.part${String(index + 1).padStart(2, '0')}.b64`,
+  );
+
+  try {
+    const chunks = await Promise.all(parts.map(async (path) => {
+      const response = await window.fetch(path, { cache: 'force-cache' });
+      if (!response.ok) throw new Error(`Unable to load ${path}`);
+      return response.text();
+    }));
+
+    const base64 = chunks.join('').replace(/\s+/g, '');
+    const binary = window.atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+
+    const objectUrl = window.URL.createObjectURL(new Blob([bytes], { type: 'video/mp4' }));
+    video.src = objectUrl;
+    video.addEventListener('loadeddata', () => {
+      video.classList.add('ready');
+      video.play().catch(() => {});
+    }, { once: true });
+    video.load();
+
+    window.addEventListener('pagehide', () => {
+      window.URL.revokeObjectURL(objectUrl);
+    }, { once: true });
+  } catch (error) {
+    console.warn('Hero background video unavailable; using the blue fallback.', error);
+    video.remove();
+    overlay.remove();
+  }
+}
+
 export function initMotion(document = globalThis.document, window = globalThis.window) {
   if (!document || !window) return;
   document.documentElement.classList.add('motion-ready');
+  setupHeroBackgroundVideo(document, window);
   observeReveals(prepareReveals(document, window.innerWidth), window);
   setupScrollEffects(document, window);
 }
