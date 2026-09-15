@@ -180,10 +180,16 @@ async function setupHeroBackgroundVideo(document, window) {
   hero.prepend(overlay);
   hero.prepend(video);
 
-  const parts = Array.from(
-    { length: 9 },
-    (_, index) => `assets/video/hero-bg.part${String(index + 1).padStart(2, '0')}.b64`,
-  );
+  const parts = [
+    'assets/video/hero-bg.part01a1.b64',
+    'assets/video/hero-bg.part01a2.b64',
+    'assets/video/hero-bg.part01a3.b64',
+    'assets/video/hero-bg.part01b.b64',
+    ...Array.from(
+      { length: 8 },
+      (_, index) => `assets/video/hero-bg.part${String(index + 2).padStart(2, '0')}.b64`,
+    ),
+  ];
 
   try {
     const chunks = await Promise.all(parts.map(async (path) => {
