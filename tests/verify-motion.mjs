@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   getActiveSectionId,
+  getHeroVideoVisuals,
   getRevealOffset,
   getScrollProgress,
   getStaggerDelay,
@@ -37,4 +38,14 @@ test('active navigation follows the section crossing the header marker', () => {
 
   assert.equal(getActiveSectionId(sections, 96), 'gallery');
   assert.equal(getActiveSectionId(sections, -400), null);
+});
+
+test('hero video is more visible while retaining a readable blue overlay', () => {
+  const desktop = getHeroVideoVisuals(1200);
+  assert.equal(desktop.opacity, 0.43);
+  assert.equal(desktop.overlay, 'linear-gradient(127deg, rgba(6,27,62,.82) 0%, rgba(11,46,107,.72) 48%, rgba(11,105,207,.56) 100%)');
+
+  const mobile = getHeroVideoVisuals(390);
+  assert.equal(mobile.opacity, 0.36);
+  assert.equal(mobile.overlay, 'linear-gradient(127deg, rgba(6,27,62,.87) 0%, rgba(11,46,107,.78) 55%, rgba(11,105,207,.64) 100%)');
 });
