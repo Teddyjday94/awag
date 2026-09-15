@@ -1,0 +1,26 @@
+name: Verify static site
+
+on:
+  push:
+    branches:
+      - main
+      - feature/multipage-redesign
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run verification scripts
+        run: |
+          node tests/verify-site.mjs
+          node tests/verify-motion.mjs
+          node tests/verify-structure.mjs
+          node tests/verify-estimate.mjs
+          if [ -f tests/verify-multipage.mjs ]; then node tests/verify-multipage.mjs; fi
