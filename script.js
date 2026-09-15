@@ -1,7 +1,29 @@
 (() => {
   const phoneGlyph = '\u260E';
-  document.querySelectorAll('[aria-hidden="true"]').forEach((element) => {
-    if (element.textContent?.trim() === phoneGlyph) element.remove();
+  const svgNamespace = 'http://www.w3.org/2000/svg';
+
+  document.querySelectorAll('.contact-list a[href^="tel:"] > span[aria-hidden="true"]').forEach((element) => {
+    if (element.textContent?.trim() !== phoneGlyph) return;
+
+    element.textContent = '';
+    element.classList.add('contact-phone-icon');
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('width', '18');
+    svg.setAttribute('height', '18');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    svg.setAttribute('focusable', 'false');
+    svg.setAttribute('aria-hidden', 'true');
+
+    const path = document.createElementNS(svgNamespace, 'path');
+    path.setAttribute('d', 'M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.69 2.8a2 2 0 0 1-.45 2.11L8.08 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.33 1.84.56 2.8.69A2 2 0 0 1 22 16.92z');
+    svg.append(path);
+    element.append(svg);
   });
 })();
 
