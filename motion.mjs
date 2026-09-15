@@ -19,6 +19,20 @@ export function getActiveSectionId(sections, marker) {
   return sections.find(({ top, bottom }) => top <= marker && bottom > marker)?.id ?? null;
 }
 
+export function getHeroVideoVisuals(viewportWidth) {
+  if (viewportWidth <= 768) {
+    return {
+      opacity: 0.36,
+      overlay: 'linear-gradient(127deg, rgba(6,27,62,.87) 0%, rgba(11,46,107,.78) 55%, rgba(11,105,207,.64) 100%)',
+    };
+  }
+
+  return {
+    opacity: 0.43,
+    overlay: 'linear-gradient(127deg, rgba(6,27,62,.82) 0%, rgba(11,46,107,.72) 48%, rgba(11,105,207,.56) 100%)',
+  };
+}
+
 function prepareReveals(document, viewportWidth) {
   const standalone = [
     ...document.querySelectorAll('.section-heading, .proof-grid, .areas-inner > div, .area-list, .cta-band-inner, .quote-copy, .quote-form, .footer-grid'),
@@ -118,6 +132,9 @@ async function setupHeroBackgroundVideo(document, window) {
   const hero = document.querySelector('.hero');
   if (!hero || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
+  const desktopVisuals = getHeroVideoVisuals(1200);
+  const mobileVisuals = getHeroVideoVisuals(390);
+
   if (!document.querySelector('#hero-video-styles')) {
     const style = document.createElement('style');
     style.id = 'hero-video-styles';
@@ -140,18 +157,18 @@ async function setupHeroBackgroundVideo(document, window) {
         filter: saturate(.86) contrast(.96);
         transition: opacity .8s ease;
       }
-      .hero-bg-video.ready { opacity: .36; }
+      .hero-bg-video.ready { opacity: ${desktopVisuals.opacity}; }
       .hero-bg-video-overlay {
-        background: linear-gradient(127deg, rgba(6,27,62,.86) 0%, rgba(11,46,107,.77) 48%, rgba(11,105,207,.62) 100%);
+        background: ${desktopVisuals.overlay};
       }
       .hero::before,
       .hero-orbit { z-index: 1; }
       .hero-grid { z-index: 2; }
       .hero-swoop { z-index: 3; }
       @media (max-width: 768px) {
-        .hero-bg-video.ready { opacity: .30; }
+        .hero-bg-video.ready { opacity: ${mobileVisuals.opacity}; }
         .hero-bg-video-overlay {
-          background: linear-gradient(127deg, rgba(6,27,62,.90) 0%, rgba(11,46,107,.83) 55%, rgba(11,105,207,.70) 100%);
+          background: ${mobileVisuals.overlay};
         }
       }
       @media (prefers-reduced-motion: reduce) {
