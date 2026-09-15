@@ -1,4 +1,11 @@
 (() => {
+  const phoneGlyph = '\u260E';
+  document.querySelectorAll('[aria-hidden="true"]').forEach((element) => {
+    if (element.textContent?.trim() === phoneGlyph) element.remove();
+  });
+})();
+
+(() => {
   const slider = document.querySelector('#hero-slider');
   if (!slider) return;
 
