@@ -19,6 +19,7 @@ assert.match(html, /aria-label="Before and after comparison"/, 'comparison slide
 assert.match(html, /tabindex="0"[^>]*role="slider"/, 'comparison slider should support keyboard focus');
 assert.match(js, /ArrowLeft|ArrowRight/, 'comparison slider should support arrow-key controls');
 assert.match(js, /aria-valuenow/, 'comparison slider should expose its current value');
+assert.match(js, /\\u260E/, 'site script should remove the emoji-prone phone glyph before display');
 assert.match(css, /@media \(prefers-reduced-motion: reduce\)/, 'motion should respect reduced-motion preferences');
 assert.match(css, /--navy:/, 'the original blue palette should remain represented');
 assert.doesNotMatch(html, /https?:\/\/(?:images\.unsplash|source\.unsplash|picsum)/, 'site should use the owner\'s real images, not stock-photo services');
