@@ -7,6 +7,14 @@
   const handle = slider.querySelector('.ba-handle');
   let value = 50;
   let dragging = false;
+  let activePointerId = null;
+  let startX = 0;
+  let startY = 0;
+  let dragIntent = null;
+
+  // Keep vertical page scrolling and pinch zoom available on mobile, while
+  // reserving horizontal gestures for the before/after comparison slider.
+  slider.style.touchAction = 'pan-y pinch-zoom';
 
   const update = (nextValue) => {
     value = Math.max(0, Math.min(100, Math.round(nextValue)));
@@ -22,19 +30,63 @@
     update(((event.clientX - rect.left) / rect.width) * 100);
   };
 
-  slider.addEventListener('pointerdown', (event) => {
-    dragging = true;
-    slider.setPointerCapture(event.pointerId);
-    updateFromPointer(event);
-  });
-  slider.addEventListener('pointermove', (event) => {
-    if (dragging) updateFromPointer(event);
-  });
-  slider.addEventListener('pointerup', (event) => {
+  const endDrag = (event) => {
+    if (event && activePointerId !== null && event.pointerId !== activePointerId) return;
     dragging = false;
-    slider.releasePointerCapture(event.pointerId);
+    dragIntent = null;
+    if (event && slider.hasPointerCapture?.(event.pointerId)) {
+      slider.releasePointerCapture(event.pointerId);
+    }
+    activePointerId = null;
+  };
+
+  slider.addEventListener('pointerdown', (event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+
+    dragging = true;
+    activePointerId = event.pointerId;
+    startX = event.clientX;
+    startY = event.clientY;
+    dragIntent = event.pointerType === 'touch' ? null : 'horizontal';
+    slider.setPointerCapture(event.pointerId);
+
+    // Mouse/pen users expect an immediate jump. On touch, wait until we know
+    // whether the user intends to drag the slider or scroll the page.
+    if (event.pointerType !== 'touch') updateFromPointer(event);
   });
-  slider.addEventListener('pointercancel', () => { dragging = false; });
+
+  slider.addEventListener('pointermove', (event) => {
+    if (!dragging || event.pointerId !== activePointerId) return;
+
+    if (event.pointerType === 'touch' && dragIntent === null) {
+      const deltaX = Math.abs(event.clientX - startX);
+      const deltaY = Math.abs(event.clientY - startY);
+
+      // Ignore tiny finger movement so the slider does not feel twitchy.
+      if (Math.max(deltaX, deltaY) < 7) return;
+
+      if (deltaY > deltaX) {
+        // A mostly vertical gesture belongs to normal page scrolling.
+        endDrag(event);
+        return;
+      }
+
+      dragIntent = 'horizontal';
+    }
+
+    if (dragIntent === 'horizontal') updateFromPointer(event);
+  });
+
+  slider.addEventListener('pointerup', (event) => {
+    if (dragging && dragIntent === 'horizontal') updateFromPointer(event);
+    endDrag(event);
+  });
+  slider.addEventListener('pointercancel', endDrag);
+  slider.addEventListener('lostpointercapture', () => {
+    dragging = false;
+    dragIntent = null;
+    activePointerId = null;
+  });
   slider.addEventListener('keydown', (event) => {
     if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
       event.preventDefault();
