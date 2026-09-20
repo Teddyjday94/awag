@@ -3,105 +3,161 @@
   if (!slider) return;
 
   const clip = slider.querySelector('.ba-clip');
-  const beforeImage = clip?.querySelector('.ba-before');
   const handle = slider.querySelector('.ba-handle');
-  if (!clip || !beforeImage || !handle) return;
+  if (!clip || !handle) return;
 
-  let value = 50;
-  let dragging = false;
-  let activePointerId = null;
-  let startX = 0;
-  let startY = 0;
-  let dragIntent = null;
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+  let targetValue = 50;
+  let renderedValue = 50;
+  let animationFrame = null;
+  let touchPointerId = null;
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchIntent = null;
 
-  slider.style.touchAction = 'pan-y pinch-zoom';
+  const clamp = (value) => Math.max(0, Math.min(100, value));
 
-  const update = (nextValue) => {
-    value = Math.max(0, Math.min(100, Math.round(nextValue)));
-    clip.style.width = `${value}%`;
-    beforeImage.style.width = `${slider.getBoundingClientRect().width}px`;
-    handle.style.left = `${value}%`;
-    slider.setAttribute('aria-valuenow', String(value));
-    slider.setAttribute('aria-valuetext', `${value} percent before image`);
+  const render = (value) => {
+    const safeValue = clamp(value);
+    clip.style.clipPath = `inset(0 ${100 - safeValue}% 0 0)`;
+    handle.style.left = `${safeValue}%`;
+    slider.setAttribute('aria-valuenow', String(Math.round(safeValue)));
+    slider.setAttribute('aria-valuetext', `${Math.round(safeValue)} percent before image revealed`);
   };
 
-  const updateFromPointer = (event) => {
-    const rect = slider.getBoundingClientRect();
-    update(((event.clientX - rect.left) / rect.width) * 100);
-  };
+  const animateReveal = () => {
+    const distance = targetValue - renderedValue;
+    const easing = Math.min(0.28, 0.14 + Math.abs(distance) * 0.002);
+    renderedValue += distance * easing;
 
-  const releaseCapture = (pointerId) => {
-    if (pointerId !== null && slider.hasPointerCapture?.(pointerId)) slider.releasePointerCapture(pointerId);
-  };
-
-  const endDrag = (event) => {
-    if (event && activePointerId !== null && event.pointerId !== activePointerId) return;
-    releaseCapture(activePointerId);
-    dragging = false;
-    dragIntent = null;
-    activePointerId = null;
-  };
-
-  slider.addEventListener('pointerdown', (event) => {
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
-    dragging = true;
-    activePointerId = event.pointerId;
-    startX = event.clientX;
-    startY = event.clientY;
-    dragIntent = event.pointerType === 'touch' ? null : 'horizontal';
-
-    if (event.pointerType !== 'touch') {
-      slider.setPointerCapture?.(event.pointerId);
-      updateFromPointer(event);
+    if (Math.abs(distance) < 0.04) {
+      renderedValue = targetValue;
+      animationFrame = null;
+      render(renderedValue);
+      return;
     }
+
+    render(renderedValue);
+    animationFrame = window.requestAnimationFrame(animateReveal);
+  };
+
+  const setTarget = (value, immediate = false) => {
+    targetValue = clamp(value);
+
+    if (immediate || reducedMotion) {
+      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+      animationFrame = null;
+      renderedValue = targetValue;
+      render(renderedValue);
+      return;
+    }
+
+    if (animationFrame === null) animationFrame = window.requestAnimationFrame(animateReveal);
+  };
+
+  const valueFromPointer = (event) => {
+    const rect = slider.getBoundingClientRect();
+    if (!rect.width) return targetValue;
+    return ((event.clientX - rect.left) / rect.width) * 100;
+  };
+
+  const endTouch = (event) => {
+    if (event && touchPointerId !== null && event.pointerId !== touchPointerId) return;
+    if (touchPointerId !== null && slider.hasPointerCapture?.(touchPointerId)) {
+      slider.releasePointerCapture(touchPointerId);
+    }
+    touchPointerId = null;
+    touchIntent = null;
+    slider.classList.remove('is-revealing');
+  };
+
+  slider.addEventListener('pointerenter', (event) => {
+    if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') return;
+    slider.classList.add('is-revealing');
+    setTarget(valueFromPointer(event));
   });
 
   slider.addEventListener('pointermove', (event) => {
-    if (!dragging || event.pointerId !== activePointerId) return;
+    if (event.pointerType === 'mouse' || event.pointerType === 'pen') {
+      slider.classList.add('is-revealing');
+      setTarget(valueFromPointer(event));
+      return;
+    }
 
-    if (event.pointerType === 'touch' && dragIntent === null) {
-      const deltaX = Math.abs(event.clientX - startX);
-      const deltaY = Math.abs(event.clientY - startY);
+    if (event.pointerType !== 'touch' || event.pointerId !== touchPointerId) return;
+
+    if (touchIntent === null) {
+      const deltaX = Math.abs(event.clientX - touchStartX);
+      const deltaY = Math.abs(event.clientY - touchStartY);
       if (Math.max(deltaX, deltaY) < 7) return;
 
       if (deltaY > deltaX) {
-        endDrag(event);
+        endTouch(event);
         return;
       }
 
-      dragIntent = 'horizontal';
+      touchIntent = 'horizontal';
       slider.setPointerCapture?.(event.pointerId);
+      slider.classList.add('is-revealing');
     }
 
-    if (dragIntent === 'horizontal') updateFromPointer(event);
+    if (touchIntent === 'horizontal') {
+      event.preventDefault();
+      setTarget(valueFromPointer(event));
+    }
+  });
+
+  slider.addEventListener('pointerleave', (event) => {
+    if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') return;
+    slider.classList.remove('is-revealing');
+    setTarget(50);
+  });
+
+  slider.addEventListener('pointerdown', (event) => {
+    if (event.pointerType !== 'touch') return;
+    touchPointerId = event.pointerId;
+    touchStartX = event.clientX;
+    touchStartY = event.clientY;
+    touchIntent = null;
   });
 
   slider.addEventListener('pointerup', (event) => {
-    if (dragging && dragIntent === 'horizontal') updateFromPointer(event);
-    endDrag(event);
+    if (event.pointerType === 'touch' && touchIntent === 'horizontal') setTarget(valueFromPointer(event));
+    endTouch(event);
   });
-  slider.addEventListener('pointercancel', endDrag);
+  slider.addEventListener('pointercancel', endTouch);
   slider.addEventListener('lostpointercapture', () => {
-    dragging = false;
-    dragIntent = null;
-    activePointerId = null;
+    touchPointerId = null;
+    touchIntent = null;
+    slider.classList.remove('is-revealing');
+  });
+
+  slider.addEventListener('focus', () => slider.classList.add('is-revealing'));
+  slider.addEventListener('blur', () => {
+    slider.classList.remove('is-revealing');
+    setTarget(50);
   });
 
   slider.addEventListener('keydown', (event) => {
     if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
       event.preventDefault();
-      update(value - (event.shiftKey ? 10 : 2));
+      setTarget(targetValue - (event.shiftKey ? 10 : 3));
     }
     if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
       event.preventDefault();
-      update(value + (event.shiftKey ? 10 : 2));
+      setTarget(targetValue + (event.shiftKey ? 10 : 3));
     }
-    if (event.key === 'Home') update(0);
-    if (event.key === 'End') update(100);
+    if (event.key === 'Home') {
+      event.preventDefault();
+      setTarget(0);
+    }
+    if (event.key === 'End') {
+      event.preventDefault();
+      setTarget(100);
+    }
   });
 
-  window.addEventListener('resize', () => update(value));
-  update(50);
+  render(50);
 })();
 
 (() => {
