@@ -13,7 +13,6 @@ for (const [page, source] of Object.entries(html)) {
   assert.doesNotMatch(source, /☎|📞|📱/, `${page} must not contain phone emoji/glyphs`);
   assert.match(source, /class="mobile-action-bar"/, `${page} should include the mobile action bar`);
   assert.match(source, /<meta name="description"/, `${page} should include a meta description`);
-  assert.match(source, /<img class="brand-logo" src="assets\/images\/logo-mark\.png"/, `${page} should use the circle-optimized header logo mark`);
 }
 
 assert.match(html['index.html'], /data-video-hero/, 'Home should opt into the hero video');
@@ -51,6 +50,7 @@ assert.ok(width >= 800 && height >= 800, `Logo source should be high resolution;
 
 const styles = await readFile(new URL('../style.css', import.meta.url), 'utf8');
 assert.match(styles, /\.brand-logo\s*\{[^}]*width:\s*55px;[^}]*height:\s*55px;[^}]*border-radius:\s*50%;/s, 'Header logo should remain a 55px circle');
+assert.match(styles, /\.brand::before\s*\{[^}]*background-image:\s*url\(["']?assets\/images\/logo\.jpg["']?\)[^}]*background-size:\s*380%[^}]*background-position:\s*79%\s+7%/s, 'Header should render a circle-optimized crop of the logo instead of squeezing the full artwork into 55px');
 
 const titles = pages.map((page) => html[page].match(/<title>([^<]+)<\/title>/)?.[1]);
 assert.equal(new Set(titles).size, pages.length, 'Each page should have a unique title');
