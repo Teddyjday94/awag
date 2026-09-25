@@ -51,7 +51,7 @@ assert.ok(width >= 800 && height >= 800, `Logo source should be high resolution;
 
 const script = await readFile(new URL('../script.js', import.meta.url), 'utf8');
 assert.doesNotMatch(script, /drawImage\(source,\s*750,\s*70,\s*338,\s*338,/, 'Header should no longer crop the full logo to a small icon');
-assert.match(script, /\.brand-logo\s*\{[^}]*width:\s*128px;[^}]*height:\s*128px;[^}]*object-fit:\s*contain;[^}]*border-radius:\s*14px;/s, 'Desktop header should show the full logo at a readable size');
+assert.match(script, /\.brand-logo\s*\{[^}]*width:\s*128px;[^}]*height:\s*128px;[^}]*object-fit:\s*cover;[^}]*border-radius:\s*50%;/s, 'Desktop header should show the business logo itself as a circular mark at a readable size');
 assert.match(script, /\.brand-text\s*\{\s*display:\s*none;/s, 'Duplicate text branding should be hidden when the full logo is shown');
 assert.match(script, /@media\s*\(max-width:\s*760px\)[\s\S]*\.brand-logo\s*\{[^}]*width:\s*86px;[^}]*height:\s*86px;/s, 'Mobile header should keep the full logo visible at a compact readable size');
 assert.match(script, /\.main-nav\s*\{\s*inset:\s*128px\s+0\s+auto;/s, 'Mobile menu offset should account for the taller logo header');

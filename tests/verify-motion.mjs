@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
 
 import {
   getActiveSectionId,
   getHeroVideoVisuals,
+  getPointerTilt,
+  getDepthOffset,
   getRevealOffset,
   getScrollProgress,
   getStaggerDelay,
@@ -48,4 +51,34 @@ test('hero video is more visible while retaining a readable blue overlay', () =>
   const mobile = getHeroVideoVisuals(390);
   assert.equal(mobile.opacity, 0.36);
   assert.equal(mobile.overlay, 'linear-gradient(127deg, rgba(6,27,62,.87) 0%, rgba(11,46,107,.78) 55%, rgba(11,105,207,.64) 100%)');
+});
+
+
+test('pointer tilt stays subtle, centered, and bounded', () => {
+  assert.deepEqual(getPointerTilt(150, 100, 300, 200), { rotateX: 0, rotateY: 0 });
+  assert.deepEqual(getPointerTilt(300, 0, 300, 200), { rotateX: 5, rotateY: 5 });
+  assert.deepEqual(getPointerTilt(-100, 400, 300, 200), { rotateX: -5, rotateY: -5 });
+});
+
+test('depth offset eases from rest to the configured travel', () => {
+  assert.equal(getDepthOffset(0, 18), 0);
+  assert.equal(getDepthOffset(0.5, 18), 9);
+  assert.equal(getDepthOffset(1.5, 18), 18);
+});
+
+test('premium motion styles cover hero staging, interactive cards, gallery, CTA, and reduced motion', async () => {
+  const [style, multipage, motion] = await Promise.all([
+    readFile(new URL('../style.css', import.meta.url), 'utf8'),
+    readFile(new URL('../multipage.css', import.meta.url), 'utf8'),
+    readFile(new URL('../motion.mjs', import.meta.url), 'utf8'),
+  ]);
+
+  assert.match(style, /hero-copy\s*>\s*\*.*hero-stage-in/s, 'Home hero should use staged entrance animation');
+  assert.match(style, /\.motion-surface/, 'Interactive surfaces should have a shared motion treatment');
+  assert.match(multipage, /\.page-hero-copy.*page-hero-stage/s, 'Interior page heroes should stage their content');
+  assert.match(multipage, /\.page-cta::before/, 'CTA bands should have an animated accent layer');
+  assert.match(multipage, /\.home-gallery a::after/, 'Homepage gallery should have an animated sheen layer');
+  assert.match(motion, /setupInteractiveSurfaces/, 'Motion controller should initialize pointer-driven surface effects');
+  assert.match(motion, /setupPageHeroDepth/, 'Motion controller should initialize page hero depth');
+  assert.match(style + multipage, /prefers-reduced-motion:\s*reduce[\s\S]*motion-surface/s, 'Reduced motion should neutralize interactive transforms');
 });

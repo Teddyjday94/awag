@@ -5,7 +5,17 @@
     html { scroll-padding-top: 150px; }
     .header-inner { min-height: 138px; height: auto; }
     .brand { min-width: 0; }
-    .brand-logo { width: 128px; height: 128px; object-fit: contain; border: 1px solid rgba(11,46,107,.12); border-radius: 14px; box-shadow: 0 10px 28px -18px rgba(11,46,107,.6); flex: 0 0 auto; }
+    .brand-logo {
+      width: 128px;
+      height: 128px;
+      box-sizing: border-box;
+      object-fit: cover;
+      background: #ffffff;
+      border: 2px solid rgba(11,46,107,.12);
+      border-radius: 50%;
+      box-shadow: 0 12px 28px -18px rgba(11,46,107,.6);
+      flex: 0 0 auto;
+    }
     .brand-text { display: none; }
 
     @media (max-width: 1000px) {
@@ -122,13 +132,12 @@
       }
 
       touchIntent = 'horizontal';
-      slider.setPointerCapture?.(event.pointerId);
       slider.classList.add('is-revealing');
     }
 
     if (touchIntent === 'horizontal') {
       event.preventDefault();
-      setTarget(valueFromPointer(event));
+      setTarget(valueFromPointer(event), true);
     }
   });
 
@@ -139,15 +148,16 @@
   });
 
   slider.addEventListener('pointerdown', (event) => {
-    if (event.pointerType !== 'touch') return;
+    if (event.pointerType !== 'touch' || event.isPrimary === false) return;
     touchPointerId = event.pointerId;
     touchStartX = event.clientX;
     touchStartY = event.clientY;
     touchIntent = null;
+    slider.setPointerCapture?.(event.pointerId);
   });
 
   slider.addEventListener('pointerup', (event) => {
-    if (event.pointerType === 'touch' && touchIntent === 'horizontal') setTarget(valueFromPointer(event));
+    if (event.pointerType === 'touch' && touchIntent === 'horizontal') setTarget(valueFromPointer(event), true);
     endTouch(event);
   });
   slider.addEventListener('pointercancel', endTouch);
@@ -334,3 +344,37 @@
 
 const year = document.querySelector('#year');
 if (year) year.textContent = new Date().getFullYear();
+
+(() => {
+  const mediaCards = [...document.querySelectorAll('.video-media')];
+  if (!mediaCards.length) return;
+
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+
+  mediaCards.forEach((card) => {
+    const video = card.querySelector('video');
+    const toggle = card.querySelector('.video-toggle');
+    if (!video || !toggle) return;
+
+    const syncToggle = () => {
+      const paused = video.paused;
+      toggle.textContent = paused ? 'Play' : 'Pause';
+      toggle.setAttribute('aria-label', `${paused ? 'Play' : 'Pause'} ${video.getAttribute('aria-label') || 'service video'}`);
+    };
+
+    if (reducedMotion) {
+      video.removeAttribute('autoplay');
+      video.pause();
+    }
+
+    toggle.addEventListener('click', () => {
+      if (video.paused) video.play().catch(() => {});
+      else video.pause();
+      syncToggle();
+    });
+
+    video.addEventListener('play', syncToggle);
+    video.addEventListener('pause', syncToggle);
+    syncToggle();
+  });
+})();

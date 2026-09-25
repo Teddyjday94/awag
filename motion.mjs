@@ -19,6 +19,20 @@ export function getActiveSectionId(sections, marker) {
   return sections.find(({ top, bottom }) => top <= marker && bottom > marker)?.id ?? null;
 }
 
+export function getPointerTilt(pointerX, pointerY, width, height, maximum = 5) {
+  if (width <= 0 || height <= 0) return { rotateX: 0, rotateY: 0 };
+  const x = Math.min(1, Math.max(0, pointerX / width));
+  const y = Math.min(1, Math.max(0, pointerY / height));
+  const rotateX = Number(((0.5 - y) * maximum * 2).toFixed(2));
+  const rotateY = Number(((x - 0.5) * maximum * 2).toFixed(2));
+  return { rotateX, rotateY };
+}
+
+export function getDepthOffset(progress, maximum = 18) {
+  const safeProgress = Math.min(1, Math.max(0, progress));
+  return Number((safeProgress * maximum).toFixed(2));
+}
+
 export function getHeroVideoVisuals(viewportWidth) {
   if (viewportWidth <= 768) {
     return {
@@ -35,11 +49,11 @@ export function getHeroVideoVisuals(viewportWidth) {
 
 function prepareReveals(document, viewportWidth) {
   const standalone = [
-    ...document.querySelectorAll('.section-heading, .proof-grid, .areas-inner > div, .area-list, .cta-band-inner, .quote-copy, .quote-form, .footer-grid'),
+    ...document.querySelectorAll('.section-heading, .proof-grid, .areas-inner > div, .area-list, .cta-band-inner, .quote-copy, .quote-form, .footer-grid, .mp-heading, .transformation-band, .content-split, .service-detail, .gallery-filters, .gallery-story, .coverage-note, .page-cta-inner'),
   ];
   standalone.forEach((element) => element.classList.add('reveal'));
 
-  const groups = document.querySelectorAll('.service-grid, .gallery-grid, .why-grid, .check-list');
+  const groups = document.querySelectorAll('.service-grid, .gallery-grid, .why-grid, .check-list, .featured-services, .mini-proof-grid, .method-panel, .area-card-grid, .contact-cards, .next-steps, .photo-ribbon, .process-timeline');
   groups.forEach((group) => {
     [...group.children].forEach((element, index) => {
       element.classList.add('reveal');
@@ -77,6 +91,75 @@ function observeReveals(elements, window) {
   }, { threshold: 0.1, rootMargin: '0px 0px -32px' });
 
   elements.forEach((element) => observer.observe(element));
+}
+
+function setupInteractiveSurfaces(document, window) {
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const precisePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const surfaces = [...document.querySelectorAll(
+    '.featured-service, .service-card, .mini-proof, .method-card, .area-card, .next-step, .contact-card, .gallery-item, .home-gallery a, .service-detail-media, .editorial-photo',
+  )];
+
+  surfaces.forEach((surface) => surface.classList.add('motion-surface'));
+  if (reduceMotion || !precisePointer) return;
+
+  surfaces.forEach((surface) => {
+    let frameRequested = false;
+    let nextEvent = null;
+
+    const render = () => {
+      frameRequested = false;
+      if (!nextEvent) return;
+      const rect = surface.getBoundingClientRect();
+      const x = nextEvent.clientX - rect.left;
+      const y = nextEvent.clientY - rect.top;
+      const { rotateX, rotateY } = getPointerTilt(x, y, rect.width, rect.height);
+      surface.style.setProperty('--motion-rx', `${rotateX}deg`);
+      surface.style.setProperty('--motion-ry', `${rotateY}deg`);
+      surface.style.setProperty('--motion-glow-x', `${Math.min(100, Math.max(0, (x / Math.max(1, rect.width)) * 100)).toFixed(1)}%`);
+      surface.style.setProperty('--motion-glow-y', `${Math.min(100, Math.max(0, (y / Math.max(1, rect.height)) * 100)).toFixed(1)}%`);
+      surface.classList.add('is-tilting');
+    };
+
+    surface.addEventListener('pointermove', (event) => {
+      if (event.pointerType && event.pointerType !== 'mouse' && event.pointerType !== 'pen') return;
+      nextEvent = event;
+      if (frameRequested) return;
+      frameRequested = true;
+      window.requestAnimationFrame(render);
+    }, { passive: true });
+
+    surface.addEventListener('pointerleave', () => {
+      nextEvent = null;
+      surface.classList.remove('is-tilting');
+      surface.style.setProperty('--motion-rx', '0deg');
+      surface.style.setProperty('--motion-ry', '0deg');
+    });
+  });
+}
+
+function setupPageHeroDepth(document, window) {
+  const hero = document.querySelector('.page-hero');
+  if (!hero || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let frameRequested = false;
+
+  const update = () => {
+    frameRequested = false;
+    const progress = Math.min(1, Math.max(0, window.scrollY / Math.max(1, hero.offsetHeight)));
+    hero.style.setProperty('--page-hero-depth', `${getDepthOffset(progress, 18)}px`);
+    hero.style.setProperty('--page-media-y', `${-getDepthOffset(progress, 14)}px`);
+    hero.style.setProperty('--page-orbit-shift', `${getDepthOffset(progress, 34)}px`);
+  };
+
+  const requestUpdate = () => {
+    if (frameRequested) return;
+    frameRequested = true;
+    window.requestAnimationFrame(update);
+  };
+
+  update();
+  window.addEventListener('scroll', requestUpdate, { passive: true });
+  window.addEventListener('resize', requestUpdate, { passive: true });
 }
 
 function setupScrollEffects(document, window) {
@@ -245,6 +328,8 @@ export function initMotion(document = globalThis.document, window = globalThis.w
   document.documentElement.classList.add('motion-ready');
   setupHeroBackgroundVideo(document, window);
   observeReveals(prepareReveals(document, window.innerWidth), window);
+  setupInteractiveSurfaces(document, window);
+  setupPageHeroDepth(document, window);
   setupScrollEffects(document, window);
 }
 
