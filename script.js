@@ -1,4 +1,45 @@
 (() => {
+  const logos = [...document.querySelectorAll('.brand-logo')];
+  if (!logos.length) return;
+
+  const revealOriginal = () => logos.forEach((logo) => { logo.style.visibility = ''; });
+  logos.forEach((logo) => { logo.style.visibility = 'hidden'; });
+
+  const source = new Image();
+  source.decoding = 'async';
+  source.src = logos[0].currentSrc || logos[0].src;
+
+  const renderHeaderLogoCrop = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 440;
+    canvas.height = 440;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      revealOriginal();
+      return;
+    }
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(source, 750, 70, 338, 338, 0, 0, 440, 440);
+    const croppedLogo = canvas.toDataURL('image/png');
+
+    logos.forEach((logo) => {
+      logo.src = croppedLogo;
+      logo.removeAttribute('srcset');
+      logo.style.objectFit = 'cover';
+      logo.style.visibility = '';
+    });
+  };
+
+  if (source.complete && source.naturalWidth) renderHeaderLogoCrop();
+  else {
+    source.addEventListener('load', renderHeaderLogoCrop, { once: true });
+    source.addEventListener('error', revealOriginal, { once: true });
+  }
+})();
+
+(() => {
   const slider = document.querySelector('#hero-slider');
   if (!slider) return;
 
