@@ -1,42 +1,26 @@
 (() => {
-  const logos = [...document.querySelectorAll('.brand-logo')];
-  if (!logos.length) return;
+  const headerLogoStyles = document.createElement('style');
+  headerLogoStyles.dataset.headerLogo = 'full';
+  headerLogoStyles.textContent = `
+    html { scroll-padding-top: 150px; }
+    .header-inner { min-height: 138px; height: auto; }
+    .brand { min-width: 0; }
+    .brand-logo { width: 128px; height: 128px; object-fit: contain; border: 1px solid rgba(11,46,107,.12); border-radius: 14px; box-shadow: 0 10px 28px -18px rgba(11,46,107,.6); flex: 0 0 auto; }
+    .brand-text { display: none; }
 
-  const revealOriginal = () => logos.forEach((logo) => { logo.style.visibility = ''; });
-  logos.forEach((logo) => { logo.style.visibility = 'hidden'; });
-
-  const source = new Image();
-  source.decoding = 'async';
-  source.src = logos[0].currentSrc || logos[0].src;
-
-  const renderHeaderLogoCrop = () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 440;
-    canvas.height = 440;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      revealOriginal();
-      return;
+    @media (max-width: 1000px) {
+      .header-inner { min-height: 118px; }
+      .brand-logo { width: 108px; height: 108px; }
     }
 
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(source, 750, 70, 338, 338, 0, 0, 440, 440);
-    const croppedLogo = canvas.toDataURL('image/png');
-
-    logos.forEach((logo) => {
-      logo.src = croppedLogo;
-      logo.removeAttribute('srcset');
-      logo.style.objectFit = 'cover';
-      logo.style.visibility = '';
-    });
-  };
-
-  if (source.complete && source.naturalWidth) renderHeaderLogoCrop();
-  else {
-    source.addEventListener('load', renderHeaderLogoCrop, { once: true });
-    source.addEventListener('error', revealOriginal, { once: true });
-  }
+    @media (max-width: 760px) {
+      html { scroll-padding-top: 108px; }
+      .header-inner { min-height: 96px; height: 96px; }
+      .brand-logo { width: 86px; height: 86px; }
+      .main-nav { inset: 128px 0 auto; max-height: calc(100vh - 128px); }
+    }
+  `;
+  document.head.appendChild(headerLogoStyles);
 })();
 
 (() => {
