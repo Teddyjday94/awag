@@ -13,6 +13,7 @@ for (const [page, source] of Object.entries(html)) {
   assert.doesNotMatch(source, /☎|📞|📱/, `${page} must not contain phone emoji/glyphs`);
   assert.match(source, /class="mobile-action-bar"/, `${page} should include the mobile action bar`);
   assert.match(source, /<meta name="description"/, `${page} should include a meta description`);
+  assert.match(source, /<img class="brand-logo" src="assets\/images\/logo-mark\.png"/, `${page} should use the circle-optimized header logo mark`);
 }
 
 assert.match(html['index.html'], /data-video-hero/, 'Home should opt into the hero video');
