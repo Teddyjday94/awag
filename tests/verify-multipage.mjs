@@ -51,6 +51,11 @@ assert.ok(width >= 800 && height >= 800, `Logo source should be high resolution;
 const styles = await readFile(new URL('../style.css', import.meta.url), 'utf8');
 assert.match(styles, /\.brand-logo\s*\{[^}]*width:\s*55px;[^}]*height:\s*55px;[^}]*border-radius:\s*50%;/s, 'Header logo should remain a 55px circle');
 
+const script = await readFile(new URL('../script.js', import.meta.url), 'utf8');
+assert.match(script, /querySelectorAll\(['"]\.brand-logo['"]\)/, 'Header logo renderer should target every circular brand logo');
+assert.match(script, /drawImage\(source,\s*750,\s*70,\s*338,\s*338,/, 'Header logo renderer should crop to the simple house mark instead of shrinking the full detailed artwork');
+assert.match(script, /toDataURL\(['"]image\/png['"]\)/, 'Header logo crop should render as a lossless PNG');
+
 const titles = pages.map((page) => html[page].match(/<title>([^<]+)<\/title>/)?.[1]);
 assert.equal(new Set(titles).size, pages.length, 'Each page should have a unique title');
 
