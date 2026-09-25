@@ -13,6 +13,7 @@ for (const [page, source] of Object.entries(html)) {
   assert.doesNotMatch(source, /☎|📞|📱/, `${page} must not contain phone emoji/glyphs`);
   assert.match(source, /class="mobile-action-bar"/, `${page} should include the mobile action bar`);
   assert.match(source, /<meta name="description"/, `${page} should include a meta description`);
+  assert.match(source, /<img class="brand-logo" src="assets\/images\/logo\.jpg"/, `${page} should use the full business logo in the header`);
 }
 
 assert.match(html['index.html'], /data-video-hero/, 'Home should opt into the hero video');
@@ -48,13 +49,12 @@ const jpegDimensions = (buffer) => {
 const { width, height } = jpegDimensions(logo);
 assert.ok(width >= 800 && height >= 800, `Logo source should be high resolution; got ${width}x${height}`);
 
-const styles = await readFile(new URL('../style.css', import.meta.url), 'utf8');
-assert.match(styles, /\.brand-logo\s*\{[^}]*width:\s*55px;[^}]*height:\s*55px;[^}]*border-radius:\s*50%;/s, 'Header logo should remain a 55px circle');
-
 const script = await readFile(new URL('../script.js', import.meta.url), 'utf8');
-assert.match(script, /querySelectorAll\(['"]\.brand-logo['"]\)/, 'Header logo renderer should target every circular brand logo');
-assert.match(script, /drawImage\(source,\s*750,\s*70,\s*338,\s*338,/, 'Header logo renderer should crop to the simple house mark instead of shrinking the full detailed artwork');
-assert.match(script, /toDataURL\(['"]image\/png['"]\)/, 'Header logo crop should render as a lossless PNG');
+assert.doesNotMatch(script, /drawImage\(source,\s*750,\s*70,\s*338,\s*338,/, 'Header should no longer crop the full logo to a small icon');
+assert.match(script, /\.brand-logo\s*\{[^}]*width:\s*128px;[^}]*height:\s*128px;[^}]*object-fit:\s*contain;[^}]*border-radius:\s*14px;/s, 'Desktop header should show the full logo at a readable size');
+assert.match(script, /\.brand-text\s*\{\s*display:\s*none;/s, 'Duplicate text branding should be hidden when the full logo is shown');
+assert.match(script, /@media\s*\(max-width:\s*760px\)[\s\S]*\.brand-logo\s*\{[^}]*width:\s*86px;[^}]*height:\s*86px;/s, 'Mobile header should keep the full logo visible at a compact readable size');
+assert.match(script, /\.main-nav\s*\{\s*inset:\s*128px\s+0\s+auto;/s, 'Mobile menu offset should account for the taller logo header');
 
 const titles = pages.map((page) => html[page].match(/<title>([^<]+)<\/title>/)?.[1]);
 assert.equal(new Set(titles).size, pages.length, 'Each page should have a unique title');
