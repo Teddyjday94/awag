@@ -212,8 +212,12 @@ function setupScrollEffects(document, window) {
 }
 
 async function setupHeroBackgroundVideo(document, window) {
+  const signalReady = () => window.dispatchEvent(new Event('awag:hero-ready'));
   const hero = document.querySelector('.hero');
-  if (!hero || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!hero || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    signalReady();
+    return;
+  }
 
   const desktopVisuals = getHeroVideoVisuals(1200);
   const mobileVisuals = getHeroVideoVisuals(390);
@@ -310,7 +314,9 @@ async function setupHeroBackgroundVideo(document, window) {
     video.addEventListener('loadeddata', () => {
       video.classList.add('ready');
       video.play().catch(() => {});
+      signalReady();
     }, { once: true });
+    video.addEventListener('error', signalReady, { once: true });
     video.load();
 
     window.addEventListener('pagehide', () => {
@@ -320,6 +326,7 @@ async function setupHeroBackgroundVideo(document, window) {
     console.warn('Hero background video unavailable; using the blue fallback.', error);
     video.remove();
     overlay.remove();
+    signalReady();
   }
 }
 

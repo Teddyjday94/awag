@@ -10,9 +10,38 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Caveat:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <script>
+    (() => {
+      const root = document.documentElement;
+      let seen = false;
+      try {
+        const forceReplay = new URLSearchParams(location.search).get('loader') === '1';
+        if (forceReplay) sessionStorage.removeItem('awagSiteLoaderSeen');
+        seen = sessionStorage.getItem('awagSiteLoaderSeen') === '1';
+      } catch (_) {}
+      root.classList.add(seen ? 'site-loader-seen' : 'site-loader-active');
+      if (!seen) {
+        window.setTimeout(() => root.classList.remove('site-loader-active'), 10000);
+      }
+    })();
+  </script>
   <link rel="stylesheet" href="multipage.css">
 </head>
 <body data-page="about">
+  <div class="site-loader" id="site-loader" role="status" aria-live="polite" aria-busy="true">
+    <video class="site-loader__media" id="site-loader-video" muted playsinline preload="auto" poster="assets/images/site-loader-poster.jpg" data-src="assets/video/site-loader-bg.mp4" aria-hidden="true"></video>
+    <div class="site-loader__shade" aria-hidden="true"></div>
+    <div class="site-loader__panel">
+      <img class="site-loader__logo" src="assets/images/logo.jpg" alt="">
+      <p class="site-loader__brand">Ascension Wash N' Geaux</p>
+      <p class="site-loader__title">Getting everything ready</p>
+      <div class="site-loader__progress" id="site-loader-progress" role="progressbar" aria-label="Website loading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <span class="site-loader__progress-fill" id="site-loader-progress-fill"></span>
+      </div>
+      <div class="site-loader__progress-meta"><span>Loading site</span><strong id="site-loader-percent">0%</strong></div>
+    </div>
+    <div class="site-loader__wash" aria-hidden="true"></div>
+  </div>
   <a class="skip-link" href="#main-content">Skip to main content</a>
   <div class="scroll-progress" id="scroll-progress" aria-hidden="true"></div>
   <div class="topbar"><div class="wrap topbar-inner"><span>Licensed &amp; insured</span><span class="topbar-location">Locally owned in Gonzales, Louisiana</span><a href="tel:+12259541848">Call or text: (225) 954-1848</a></div></div>
@@ -68,6 +97,6 @@
 
   <footer class="site-footer"><div class="wrap footer-grid"><div class="footer-brand"><img src="assets/images/logo.jpg" alt=""><div><strong>Ascension Wash N' Geaux LLC</strong><span>Soft washing &amp; pressure washing</span></div></div><nav class="footer-links" aria-label="Footer navigation"><a href="services.html">Services</a><a href="gallery.html">Gallery</a><a href="about.html">About</a><a href="service-area.html">Service area</a><a href="contact.html">Free quote</a></nav><div class="footer-contact"><a href="tel:+12259541848">(225) 954-1848</a><a href="mailto:awngeaux@gmail.com">awngeaux@gmail.com</a><span>Licensed &amp; insured</span></div></div><div class="wrap footer-bottom"><span>© <span id="year"></span> Ascension Wash N' Geaux LLC</span><span>Gonzales, Louisiana</span></div></footer>
   <div class="mobile-action-bar" aria-label="Quick contact actions"><a href="tel:+12259541848">Call now</a><a href="contact.html">Free quote</a></div>
-  <script src="script.js"></script><script type="module" src="motion.mjs"></script>
+  <script src="loader.js"></script><script src="script.js"></script><script type="module" src="motion.mjs"></script>
 </body>
 </html>
