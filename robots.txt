@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://awag-preview.vercel.app/sitemap.xml
