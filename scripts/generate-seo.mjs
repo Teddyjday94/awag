@@ -16,6 +16,7 @@ const pages = [
     title: "Pressure Washing in Gonzales, LA | Ascension Wash N' Geaux",
     description: "Get professional pressure washing and soft washing in Gonzales, Prairieville, Baton Rouge, Denham Springs, and across Ascension Parish. Free estimates.",
     image: '/assets/images/hero-after.jpg',
+    imageAlt: 'White house siding after professional soft washing',
   },
   {
     file: 'services.html',
@@ -23,6 +24,7 @@ const pages = [
     title: "Pressure & Soft Washing Services | Gonzales, LA",
     description: "Explore house washing, roof soft washing, concrete cleaning, fence and deck washing, and commercial exterior cleaning in Gonzales and Ascension Parish.",
     image: '/assets/images/roof-shingle-before-after-main.jpg',
+    imageAlt: 'Shingle roof before and after professional soft washing',
   },
   {
     file: 'gallery.html',
@@ -30,6 +32,7 @@ const pages = [
     title: "Pressure Washing Before & After Gallery | Gonzales, LA",
     description: "See real pressure washing and soft washing results from homes and businesses in Gonzales and Ascension Parish, including roofs, siding, concrete, and fences.",
     image: '/assets/images/gable-ba.jpg',
+    imageAlt: 'Two-story siding before and after professional soft washing',
   },
   {
     file: 'about.html',
@@ -37,6 +40,7 @@ const pages = [
     title: "Local Pressure Washing Company | Gonzales, LA",
     description: "Meet Ascension Wash N' Geaux, a locally owned, licensed, and insured pressure washing company serving Gonzales, Ascension Parish, and nearby communities.",
     image: '/assets/images/truck-rig.jpg',
+    imageAlt: "Ascension Wash N' Geaux pressure washing truck and trailer",
   },
   {
     file: 'service-area.html',
@@ -44,6 +48,7 @@ const pages = [
     title: "Pressure Washing Service Area | Ascension Parish, LA",
     description: "Pressure washing and soft washing in Gonzales, Prairieville, Baton Rouge, Denham Springs, and communities throughout Ascension Parish. Check your address.",
     image: '/assets/images/estate-driveway.jpg',
+    imageAlt: 'Large Louisiana property driveway after pressure washing',
   },
   {
     file: 'contact.html',
@@ -51,6 +56,7 @@ const pages = [
     title: "Free Pressure Washing Quote | Gonzales, LA",
     description: "Request a free pressure washing or soft washing estimate in Gonzales and Ascension Parish. Call, text, email, or send your property details online.",
     image: '/assets/images/porch-ba1.jpg',
+    imageAlt: 'Fence and railing before and after professional exterior washing',
   },
 ];
 
@@ -164,11 +170,12 @@ const metadataFor = (page) => {
   <meta property="og:title" content="${title}">
   <meta property="og:description" content="${description}">
   <meta property="og:image" content="${image}">
-  <meta property="og:image:alt" content="${escapeAttribute(`Exterior cleaning work by ${businessName}`)}">
+  <meta property="og:image:alt" content="${escapeAttribute(page.imageAlt)}">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${title}">
   <meta name="twitter:description" content="${description}">
   <meta name="twitter:image" content="${image}">
+  <meta name="twitter:image:alt" content="${escapeAttribute(page.imageAlt)}">
   <script type="application/ld+json">
 ${structuredDataFor(page)}
   </script>

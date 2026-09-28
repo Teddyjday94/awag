@@ -14,19 +14,28 @@ const pages = [
 
 assert.ok(existsSync(new URL('../seo.config.json', import.meta.url)), 'SEO config should provide one replaceable site URL');
 const config = JSON.parse(await readFile(new URL('../seo.config.json', import.meta.url), 'utf8'));
-assert.equal(config.siteUrl, 'https://awag-preview.vercel.app', 'SEO config should use the current public site until the real domain is connected');
+assert.doesNotThrow(() => new URL(config.siteUrl), 'SEO config should contain a valid public site URL');
+assert.match(config.siteUrl, /^https:\/\/[^/]+$/, 'SEO config should contain one HTTPS origin without a path or trailing slash');
 
 const pageSources = new Map(await Promise.all(pages.map(async ({ file }) => [
   file,
   await readFile(new URL(file, root), 'utf8'),
 ])));
+const titles = [];
+const descriptions = [];
 
 for (const { file, path } of pages) {
   const html = pageSources.get(file);
   const canonical = `${config.siteUrl}${path}`;
   const h1Count = [...html.matchAll(/<h1\b/gi)].length;
   const jsonLdBlocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/gi)];
+  const title = html.match(/<title>([^<]+)<\/title>/i)?.[1].trim();
+  const description = html.match(/<meta name="description" content="([^"]+)">/i)?.[1].trim();
 
+  assert.ok(title, `${file} should provide a non-empty title`);
+  assert.ok(description, `${file} should provide a non-empty meta description`);
+  titles.push(title);
+  descriptions.push(description);
   assert.equal(h1Count, 1, `${file} should have exactly one h1`);
   assert.match(html, new RegExp(`<link rel="canonical" href="${canonical.replaceAll('.', '\\.')}">`), `${file} should expose its absolute canonical URL`);
   assert.match(html, /<meta name="robots" content="index, follow, max-image-preview:large">/, `${file} should explicitly allow indexing and large image previews`);
@@ -39,6 +48,7 @@ for (const { file, path } of pages) {
   assert.match(html, /<meta name="twitter:title" content="[^"]+">/, `${file} should provide a Twitter title`);
   assert.match(html, /<meta name="twitter:description" content="[^"]+">/, `${file} should provide a Twitter description`);
   assert.match(html, /<meta name="twitter:image" content="https:\/\/[^\"]+">/, `${file} should provide an absolute Twitter image`);
+  assert.match(html, /<meta name="twitter:image:alt" content="[^"]+">/, `${file} should describe its Twitter image`);
   assert.ok(jsonLdBlocks.length >= 1, `${file} should contain JSON-LD structured data`);
 
   const graph = jsonLdBlocks.flatMap(([, json]) => {
@@ -48,6 +58,9 @@ for (const { file, path } of pages) {
   assert.ok(graph.some((node) => node['@type'] === 'LocalBusiness'), `${file} should identify the local business`);
   assert.ok(graph.some((node) => node['@type'] === 'WebPage' && node.url === canonical), `${file} should identify the canonical webpage`);
 }
+
+assert.equal(new Set(titles).size, pages.length, 'Every page should have a unique title');
+assert.equal(new Set(descriptions).size, pages.length, 'Every page should have a unique meta description');
 
 const homeGraph = JSON.parse(pageSources.get('index.html').match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/i)[1])['@graph'];
 assert.ok(homeGraph.some((node) => node['@type'] === 'WebSite'), 'Home should identify the website and preferred site name');
