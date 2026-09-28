@@ -1,12 +1,9 @@
 import { readFile, writeFile } from 'node:fs/promises';
+import { validateSiteOrigin } from './validate-site-origin.mjs';
 
 const root = new URL('../', import.meta.url);
 const config = JSON.parse(await readFile(new URL('seo.config.json', root), 'utf8'));
-const siteUrl = config.siteUrl.replace(/\/$/, '');
-
-if (!/^https:\/\/[^/]+$/i.test(siteUrl)) {
-  throw new Error('seo.config.json siteUrl must be an HTTPS origin without a path.');
-}
+const siteUrl = validateSiteOrigin(config.siteUrl);
 
 const businessName = "Ascension Wash N' Geaux";
 const pages = [
@@ -32,7 +29,7 @@ const pages = [
     title: "Pressure Washing Before & After Gallery | Gonzales, LA",
     description: "See real pressure washing and soft washing results from homes and businesses in Gonzales and Ascension Parish, including roofs, siding, concrete, and fences.",
     image: '/assets/images/gable-ba.jpg',
-    imageAlt: 'Two-story siding before and after professional soft washing',
+    imageAlt: 'Single-story home exterior with staining before soft washing',
   },
   {
     file: 'about.html',

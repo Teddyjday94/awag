@@ -13,9 +13,21 @@ const pages = [
 ];
 
 assert.ok(existsSync(new URL('../seo.config.json', import.meta.url)), 'SEO config should provide one replaceable site URL');
+const validatorUrl = new URL('../scripts/validate-site-origin.mjs', import.meta.url);
+assert.ok(existsSync(validatorUrl), 'SEO generation should validate the configured site origin');
+const { validateSiteOrigin } = await import(validatorUrl);
+for (const invalidUrl of [
+  'http://example.com',
+  'https://example.com/',
+  'https://example.com/path',
+  'https://example.com?ref=test',
+  'https://example.com#preview',
+]) {
+  assert.throws(() => validateSiteOrigin(invalidUrl), /HTTPS origin/, `${invalidUrl} should not be accepted as the canonical origin`);
+}
+assert.equal(validateSiteOrigin('https://example.com'), 'https://example.com', 'A clean HTTPS origin should be accepted');
 const config = JSON.parse(await readFile(new URL('../seo.config.json', import.meta.url), 'utf8'));
-assert.doesNotThrow(() => new URL(config.siteUrl), 'SEO config should contain a valid public site URL');
-assert.match(config.siteUrl, /^https:\/\/[^/]+$/, 'SEO config should contain one HTTPS origin without a path or trailing slash');
+assert.equal(validateSiteOrigin(config.siteUrl), config.siteUrl, 'SEO config should contain one HTTPS origin without a path, query, fragment, or trailing slash');
 
 const pageSources = new Map(await Promise.all(pages.map(async ({ file }) => [
   file,
