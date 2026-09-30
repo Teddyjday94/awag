@@ -15,9 +15,17 @@ const assets = [
   'assets/images/commercial-concrete-before-after.jpg',
   'assets/images/commercial-wall-before-after.jpg',
   'assets/images/commercial-surface-cleaner-poster.jpg',
+  'assets/images/commercial-walkway-before.jpg',
+  'assets/images/commercial-walkway-after.jpg',
   'assets/video/commercial-surface-cleaner.mp4',
 ];
-for (const asset of assets) await access(new URL(asset, root));
+for (const asset of assets) {
+  try {
+    await access(new URL(asset, root));
+  } catch {
+    assert.fail(`Commercial portfolio asset should exist: ${asset}`);
+  }
+}
 
 assert.match(gallery, /data-gallery-filter="commercial"[^>]*>Commercial</, 'Gallery should have a Commercial filter');
 assert.match(gallery, /data-gallery-category="commercial"[\s\S]*commercial-dons-storefront\.jpg/, 'Gallery should feature the Don\'s storefront commercial job');
@@ -25,8 +33,10 @@ assert.match(gallery, /commercial-dons-night-cleaning\.jpg[\s\S]*Night service|N
 assert.match(gallery, /commercial-concrete-before-after\.jpg[\s\S]*Commercial concrete[\s\S]*before \/ after/i, 'Gallery should show a true commercial concrete before/after');
 assert.match(gallery, /commercial-wall-before-after\.jpg[\s\S]*Building exterior[\s\S]*before \/ after/i, 'Gallery should show a true commercial wall before/after');
 
-assert.match(services, /id="commercial"[\s\S]*commercial-surface-cleaner\.mp4/, 'Commercial service should use the supplied surface-cleaner video');
-assert.match(services, /commercial-surface-cleaner-poster\.jpg/, 'Commercial service video should have a matching poster');
+const commercialService = services.match(/<article class="service-detail" id="commercial">[\s\S]*?<\/article>/)?.[0] ?? '';
+assert.match(commercialService, /commercial-walkway-before\.jpg[\s\S]*>Before</, 'Commercial service should label the supplied untreated walkway photo as Before');
+assert.match(commercialService, /commercial-walkway-after\.jpg[\s\S]*>After</, 'Commercial service should label the supplied cleaned walkway photo as After');
+assert.doesNotMatch(commercialService, /<video|commercial-surface-cleaner/, 'Commercial service should replace its action video with the supplied before-and-after photos');
 assert.match(services, /commercial-dons-storefront\.jpg/, 'Commercial service should include a real business storefront');
 assert.match(services, /commercial-office-building-after\.jpg/, 'Commercial service should include a cleaned commercial building exterior');
 
