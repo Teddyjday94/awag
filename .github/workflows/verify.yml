@@ -22,5 +22,6 @@ jobs:
           node tests/verify-site.mjs
           node tests/verify-motion.mjs
           node tests/verify-structure.mjs
+          node tests/verify-commercial-portfolio.mjs
           node tests/verify-estimate.mjs
           if [ -f tests/verify-multipage.mjs ]; then node tests/verify-multipage.mjs; fi
