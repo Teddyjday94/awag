@@ -125,7 +125,6 @@ Update the website link on the Facebook page (`facebook.com/ascensionwashngeaux`
 
 ## 5. Domain housekeeping
 
-- Only `ascensionwashngeaux.com` is attached in Vercel right now. Add `www.ascensionwashngeaux.com`
-  in **Vercel > Project > Settings > Domains** and set it to redirect to the main domain,
-  so people who type `www` still get there.
+- `www.ascensionwashngeaux.com` is attached in Vercel and permanently redirects (308) to
+  `https://ascensionwashngeaux.com`, so there is one address for Google to index.
 - When pages change, update the `<lastmod>` dates in `sitemap.xml`.
