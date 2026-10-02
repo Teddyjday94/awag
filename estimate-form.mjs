@@ -81,6 +81,7 @@ function initEstimateForm() {
 
     try {
       await submitEstimateRequest(fields);
+      form.dispatchEvent(new CustomEvent('awag:estimate-submitted', { bubbles: true, detail: { service: clean(fields.service) } }));
       form.reset();
       setStatus(status, "Request sent. We'll contact you with the next step.", 'success');
     } catch (error) {
