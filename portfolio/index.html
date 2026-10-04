@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Teddy Day Portfolio</title>
+<title>Thomas Day Portfolio</title>
 <meta name="description" content="Web design and development portfolio. Fast, animated websites for local businesses and brands.">
 <meta name="theme-color" content="#021624">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -220,7 +220,7 @@ section { position: relative; }
   transform-origin: 50% 0; will-change: transform;
   text-decoration: none; color: inherit;
 }
-.card:nth-child(2) { background: linear-gradient(160deg, #1b2b20, #0b160f 70%); }
+.card { background: linear-gradient(160deg, var(--c1, #06263d), var(--c2, #031827) 70%); }
 .card__shot { position: relative; min-width: 0; border-radius: 16px; overflow: hidden; background: #0b2233; }
 .card__shot img { width: 100%; height: 100%; object-fit: cover; object-position: top; transition: transform 1.2s var(--ease); }
 .card:hover .card__shot img { transform: scale(1.04); }
@@ -253,8 +253,10 @@ section { position: relative; }
 .case__pin { position: relative; }
 .case__track { display: flex; align-items: flex-start; gap: clamp(16px, 2vw, 32px); padding-inline: var(--gutter); padding-bottom: clamp(60px, 8vw, 120px); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .case__track::-webkit-scrollbar { display: none; }
-.slide { flex: none; width: min(78vw, 980px); scroll-snap-align: start; display: grid; align-content: start; gap: 14px; }
+.slide { color: inherit; text-decoration: none; flex: none; width: min(78vw, 980px); scroll-snap-align: start; display: grid; align-content: start; gap: 14px; }
 .slide--tall { width: min(64vw, 360px); }
+.slide figure img { transition: transform 1s var(--ease); }
+.slide:hover figure img { transform: scale(1.04); }
 .slide figure { margin: 0; border-radius: 18px; overflow: hidden; background: #d9cdb2; box-shadow: 0 30px 60px -30px rgba(2, 22, 36, .5); }
 .slide img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: top; }
 .slide--tall img { aspect-ratio: 390 / 844; }
@@ -273,6 +275,32 @@ section { position: relative; }
 .case__bar { position: absolute; left: var(--gutter); right: var(--gutter); bottom: 34px; height: 2px; background: rgba(2, 22, 36, .15); display: none; }
 .case__bar i { display: block; height: 100%; width: 100%; background: var(--night); transform-origin: left; transform: scaleX(var(--p, 0)); }
 .js.pin-ok .case__bar { display: block; }
+
+
+/* ---------- index list with hover preview ---------- */
+#index { padding-bottom: clamp(40px, 6vw, 80px); }
+.index { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.index__row {
+  display: grid; grid-template-columns: 56px minmax(0, 1fr) auto 40px; gap: 16px; align-items: center;
+  padding-block: clamp(16px, 2vw, 26px); border-bottom: 1px solid var(--line); text-decoration: none;
+  transition: padding .5s var(--ease), color .3s;
+}
+.index__row .mono { color: var(--fog); }
+.index__row b { font: 800 clamp(24px, 3.4vw, 52px)/1 var(--f-display); font-stretch: 112%; letter-spacing: -.025em; text-transform: uppercase; min-width: 0; }
+.index__cat { color: var(--fog); font-size: 14px; text-align: right; }
+.index__go { justify-self: end; font-size: 22px; transition: transform .5s var(--ease); }
+.index:hover .index__row { color: rgba(233, 241, 247, .35); }
+.index .index__row:hover, .index .index__row:focus-visible { color: var(--beam); padding-left: 14px; }
+.index__row:hover .index__go { transform: rotate(45deg); }
+@media (max-width: 640px) { .index__row { grid-template-columns: 34px minmax(0, 1fr) 24px; } .index__cat { display: none; } }
+.peek {
+  position: fixed; left: 0; top: 0; z-index: 40; width: clamp(240px, 24vw, 380px); aspect-ratio: 16 / 10;
+  border-radius: 14px; overflow: hidden; pointer-events: none; opacity: 0; scale: .6;
+  transition: opacity .35s, scale .5s var(--ease); box-shadow: 0 30px 80px rgba(0, 0, 0, .6);
+}
+.peek img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.peek.is-on { opacity: 1; scale: 1; }
+@media not ((hover: hover) and (pointer: fine)) { .peek { display: none; } }
 
 /* ---------- about ---------- */
 .about { padding-block: clamp(90px, 12vw, 170px); }
@@ -355,10 +383,10 @@ section { position: relative; }
 </div>
 
 <nav class="nav" aria-label="Main">
-  <a class="nav__brand" href="#top" data-scramble>Teddy Day</a>
+  <a class="nav__brand" href="#top" data-scramble>Thomas Day</a>
   <ul class="nav__links mono">
     <li><a href="#work" data-scramble>Work</a></li>
-    <li><a href="#case" data-scramble>Case study</a></li>
+    <li><a href="#lab" data-scramble>Products</a></li>
     <li><a href="#about" data-scramble>About</a></li>
     <li><a href="#contact" data-scramble>Contact</a></li>
   </ul>
@@ -369,7 +397,7 @@ section { position: relative; }
   <header class="hero">
     <div class="beam" id="beam" aria-hidden="true"></div>
     <div class="hero__photo" id="photo">
-      <img src="assets/hero.jpg" alt="Teddy in a black hoodie, eyes closed, face lit by a single stripe of warm light against a blue wall" width="896" height="1195" fetchpriority="high">
+      <img src="assets/hero.jpg" alt="Thomas Day in a black hoodie, eyes closed, face lit by a single stripe of warm light against a blue wall" width="896" height="1195" fetchpriority="high">
     </div>
     <canvas class="dust" id="dust" aria-hidden="true"></canvas>
 
@@ -389,6 +417,7 @@ section { position: relative; }
           <span>Web design</span>
           <span>Front-end development</span>
           <span>Motion &amp; interaction</span>
+          <span>Founder, SideQuest Creative</span>
         </div>
       </div>
     </div>
@@ -407,31 +436,76 @@ section { position: relative; }
 
   <section id="work" class="wrap" aria-labelledby="work-h">
     <div class="head">
-      <h2 id="work-h" data-reveal>Selected<br><span>work</span></h2>
-      <p data-reveal>Real sites for real businesses. Each one is built by hand, tuned for phones first, and shipped with motion that earns its place.</p>
+      <h2 id="work-h" data-reveal>Client<br><span>work</span></h2>
+      <p data-reveal>Real sites for real Louisiana businesses. Each one is built by hand, tuned for phones first, and shipped with motion that earns its place.</p>
     </div>
 
     <div class="stack" id="stack">
-      <a class="card" href="https://github.com/Teddyjday94/awag" target="_blank" rel="noopener" data-cursor="view">
+      <a class="card" href="https://awag-preview.vercel.app/" target="_blank" rel="noopener" data-cursor="view" style="--c1:#06263d;--c2:#031827">
         <div class="card__shot">
-          <img src="assets/work/awag-home.jpg" alt="Ascension Wash N' Geaux homepage with a before and after photo slider" loading="lazy">
-          <div class="phone"><img src="assets/work/awag-mobile.jpg" alt="The same homepage on a phone" loading="lazy"></div>
+          <img src="assets/work/awag-home.jpg" alt="Ascension Wash N' Geaux website" loading="lazy">
+          <div class="phone"><img src="assets/work/awag-mobile.jpg" alt="" loading="lazy"></div>
         </div>
         <div class="card__body">
-          <div class="card__top mono"><span>01</span><span>2026</span></div>
+          <div class="card__top mono"><span>01 / Pressure washing</span><span>2026</span></div>
           <h3>Ascension Wash N' Geaux</h3>
-          <p>A six-page site for a pressure washing company in Gonzales, Louisiana. Drag-to-compare before and after photos, a video loader, a quote form, and service area pages written for local search.</p>
-          <ul class="tags">
-            <li>Design</li><li>HTML / CSS / JS</li><li>Before / after sliders</li><li>Local SEO</li>
-          </ul>
-          <span class="card__cta"><i>&rarr;</i>View the project</span>
+          <p>A six-page site for a pressure washing company in Gonzales. Drag-to-compare before and after photos, a video loader, a quote form, and service area pages written for local search.</p>
+          <ul class="tags"><li>Lead generation</li><li>Before / after</li><li>Local SEO</li></ul>
+          <span class="card__cta"><i>&rarr;</i>awag-preview.vercel.app</span>
         </div>
       </a>
-
-      <a class="card card--next" href="#contact" data-cursor="view">
-        <div class="card__shot"><strong>02</strong></div>
+      <a class="card" href="https://rivercityrolloffsla.com/" target="_blank" rel="noopener" data-cursor="view" style="--c1:#2b0f10;--c2:#160708">
+        <div class="card__shot">
+          <img src="assets/work/river-city.jpg" alt="River City RollOffs website" loading="lazy">
+        </div>
         <div class="card__body">
-          <div class="card__top mono"><span>02</span><span>Open</span></div>
+          <div class="card__top mono"><span>02 / Dumpster rentals</span><span>2026</span></div>
+          <h3>River City RollOffs</h3>
+          <p>A bold rental site built around fast requests, clear service areas across three parishes, real jobsite photos, and call-or-text buttons everywhere they're needed.</p>
+          <ul class="tags"><li>Multi-page</li><li>Lead generation</li><li>Local SEO</li></ul>
+          <span class="card__cta"><i>&rarr;</i>rivercityrolloffsla.com</span>
+        </div>
+      </a>
+      <a class="card" href="https://ascensionmowngeaux.com/" target="_blank" rel="noopener" data-cursor="view" style="--c1:#102414;--c2:#07140a">
+        <div class="card__shot">
+          <img src="assets/work/mow-n-geaux.jpg" alt="Ascension Mow N' Geaux website" loading="lazy">
+        </div>
+        <div class="card__body">
+          <div class="card__top mono"><span>03 / Lawn care & landscaping</span><span>2026</span></div>
+          <h3>Ascension Mow N' Geaux</h3>
+          <p>A rebuild for a family-run lawn and landscaping crew in Prairieville. Five service pages, a photo gallery with lightbox, reviews, and a quote request flow.</p>
+          <ul class="tags"><li>Redesign</li><li>Service pages</li><li>Mobile first</li></ul>
+          <span class="card__cta"><i>&rarr;</i>ascensionmowngeaux.com</span>
+        </div>
+      </a>
+      <a class="card" href="https://helping-hands-coral-alpha.vercel.app/" target="_blank" rel="noopener" data-cursor="view" style="--c1:#17240f;--c2:#0b1407">
+        <div class="card__shot">
+          <img src="assets/work/helping-hands.jpg" alt="Helping Hands Lawn Care website" loading="lazy">
+        </div>
+        <div class="card__body">
+          <div class="card__top mono"><span>04 / Lawn care</span><span>2026</span></div>
+          <h3>Helping Hands Lawn Care</h3>
+          <p>A straightforward local build for a Baton Rouge lawn crew. The work is easy to understand, the coverage is easy to find, and an estimate is two taps away.</p>
+          <ul class="tags"><li>Local service</li><li>Photo proof</li><li>Lead form</li></ul>
+          <span class="card__cta"><i>&rarr;</i>helping-hands-coral-alpha.vercel.app</span>
+        </div>
+      </a>
+      <a class="card" href="https://santa-jim-hope-site.vercel.app/" target="_blank" rel="noopener" data-cursor="view" style="--c1:#2e1a0c;--c2:#170c05">
+        <div class="card__shot">
+          <img src="assets/work/santa-jim.jpg" alt="Santa Jim of Baton Rouge website" loading="lazy">
+        </div>
+        <div class="card__body">
+          <div class="card__top mono"><span>05 / Events & booking</span><span>2026</span></div>
+          <h3>Santa Jim of Baton Rouge</h3>
+          <p>A warm, photo-led booking site for a working Santa. Visit types, real event moments, and an inquiry form that collects everything needed to book.</p>
+          <ul class="tags"><li>Booking</li><li>Next.js</li><li>Seasonal brand</li></ul>
+          <span class="card__cta"><i>&rarr;</i>santa-jim-hope-site.vercel.app</span>
+        </div>
+      </a>
+      <a class="card card--next" href="#contact" data-cursor="view" style="--c1:#1b2b20;--c2:#0b160f">
+        <div class="card__shot"><strong>06</strong></div>
+        <div class="card__body">
+          <div class="card__top mono"><span>06 / Open slot</span><span>Now</span></div>
           <h3>Your business goes here</h3>
           <p>One build slot is open this month. Bring your logo, your photos, and what makes you different. I handle the design, the build, the launch, and the details after.</p>
           <ul class="tags"><li>Landing pages</li><li>Multi-page sites</li><li>Redesigns</li></ul>
@@ -441,43 +515,69 @@ section { position: relative; }
     </div>
   </section>
 
-  <section id="case" class="case" aria-labelledby="case-h">
+  <section id="lab" class="case" aria-labelledby="lab-h">
     <div class="head wrap">
-      <h2 id="case-h" data-reveal>Inside<br><span>the build</span></h2>
-      <p data-reveal>Ascension Wash N' Geaux, page by page. Scroll to move through it, or swipe on a phone.</p>
+      <h2 id="lab-h" data-reveal>Products<br><span>&amp; side quests</span></h2>
+      <p data-reveal>Software I built for myself, and the passion projects where I push motion, 3D, and interaction further than a client site needs.</p>
     </div>
     <div class="case__pin" id="pin">
       <div class="case__sticky">
         <div class="case__track" id="track">
-          <div class="slide">
-            <figure><img src="assets/work/awag-home.jpg" alt="Homepage hero with a before and after slider" loading="lazy"></figure>
-            <div class="slide__cap"><span class="mono">Home</span><b>Grimy to gleaming</b><span>The hero slider reveals the dirty siding as you move across it.</span></div>
-          </div>
-          <div class="slide slide--tall">
-            <figure><img src="assets/work/awag-mobile.jpg" alt="Homepage on a phone with a sticky call bar" loading="lazy"></figure>
-            <div class="slide__cap"><span class="mono">Phone</span><b>Thumb first</b></div>
-          </div>
-          <div class="slide">
-            <figure><img src="assets/work/awag-gallery.jpg" alt="Gallery page header" loading="lazy"></figure>
-            <div class="slide__cap"><span class="mono">Gallery</span><b>Proof, not promises</b><span>Real job photos, sorted by surface.</span></div>
-          </div>
-          <div class="slide">
-            <figure><img src="assets/work/awag-services.jpg" alt="Services page" loading="lazy"></figure>
-            <div class="slide__cap"><span class="mono">Services</span><b>Every surface</b><span>Roofs, siding, concrete, and commercial.</span></div>
-          </div>
-          <div class="slide slide--tall">
-            <figure><img src="assets/work/awag-gallery-mobile.jpg" alt="Gallery on a phone" loading="lazy"></figure>
-            <div class="slide__cap"><span class="mono">Phone</span><b>Swipe to compare</b></div>
-          </div>
-          <div class="slide">
-            <figure><img src="assets/work/awag-contact.jpg" alt="Contact page with a quote request form" loading="lazy"></figure>
-            <div class="slide__cap"><span class="mono">Contact</span><b>Quotes in one tap</b><span>A short form that texts the owner.</span></div>
-          </div>
+          <a class="slide" href="https://quotewake.vercel.app/" target="_blank" rel="noopener" data-cursor="view">
+            <figure><img src="assets/work/quotewake.jpg" alt="QuoteWake" loading="lazy"></figure>
+            <div class="slide__cap"><span class="mono">SaaS product</span><b>QuoteWake</b><span>Follows up on quiet estimates for service businesses and shows the revenue it brings back.</span></div>
+          </a>
+          <a class="slide" href="https://guild-os-ebon.vercel.app/" target="_blank" rel="noopener" data-cursor="view">
+            <figure><img src="assets/work/guild-os.jpg" alt="GuildOS" loading="lazy"></figure>
+            <div class="slide__cap"><span class="mono">SaaS / gaming</span><b>GuildOS</b><span>A Discord-first command center for events, rosters, recruitment, and attendance.</span></div>
+          </a>
+          <a class="slide" href="https://handfx-three.vercel.app/" target="_blank" rel="noopener" data-cursor="view">
+            <figure><img src="assets/work/handfx.jpg" alt="Hand Effects" loading="lazy"></figure>
+            <div class="slide__cap"><span class="mono">Interactive</span><b>Hand Effects</b><span>Webcam hand tracking that drives real-time visual effects, with recording built in.</span></div>
+          </a>
+          <a class="slide" href="https://unfiltered-beige.vercel.app/" target="_blank" rel="noopener" data-cursor="view">
+            <figure><img src="assets/work/unfiltered.jpg" alt="Unfiltered" loading="lazy"></figure>
+            <div class="slide__cap"><span class="mono">Editorial / 3D</span><b>Unfiltered</b><span>A fan studio built in 3D with React Three Fiber, a searchable archive, and a soundboard.</span></div>
+          </a>
+          <a class="slide" href="https://resident-evil-eta.vercel.app/" target="_blank" rel="noopener" data-cursor="view">
+            <figure><img src="assets/work/resident-evil.jpg" alt="Resident Evil Archive" loading="lazy"></figure>
+            <div class="slide__cap"><span class="mono">Fan archive</span><b>Resident Evil Archive</b><span>Searchable game records, weapons, pathogens, and dossiers in a survival-horror interface.</span></div>
+          </a>
+          <a class="slide" href="https://targaryan.vercel.app/" target="_blank" rel="noopener" data-cursor="view">
+            <figure><img src="assets/work/black-queen.jpg" alt="The Black Queen" loading="lazy"></figure>
+            <div class="slide__cap"><span class="mono">World-building</span><b>The Black Queen</b><span>Interactive maps, dragons, ravens, and ranks for a fictional campaign.</span></div>
+          </a>
+          <a class="slide" href="https://magic-rpg.vercel.app/" target="_blank" rel="noopener" data-cursor="view">
+            <figure><img src="assets/work/rogue-star-walker.jpg" alt="The Rogue Star-Walker" loading="lazy"></figure>
+            <div class="slide__cap"><span class="mono">Browser RPG</span><b>The Rogue Star-Walker</b><span>A playable fantasy RPG with combat, character systems, and progression.</span></div>
+          </a>
         </div>
         <div class="case__bar" aria-hidden="true"><i id="case-bar"></i></div>
       </div>
     </div>
   </section>
+
+  <section id="index" class="wrap" aria-labelledby="index-h">
+    <div class="head">
+      <h2 id="index-h" data-reveal>All<br><span>projects</span></h2>
+      <p data-reveal>Every live site in one list. Hover a row for a preview, click to open it.</p>
+    </div>
+    <ul class="index" id="index-list">
+      <li><a class="index__row" href="https://awag-preview.vercel.app/" target="_blank" rel="noopener" data-img="assets/work/awag-home.jpg"><span class="mono">01</span><b>Ascension Wash N' Geaux</b><span class="index__cat">Pressure washing</span><span class="index__go" aria-hidden="true">&nearr;</span></a></li>
+      <li><a class="index__row" href="https://rivercityrolloffsla.com/" target="_blank" rel="noopener" data-img="assets/work/river-city.jpg"><span class="mono">02</span><b>River City RollOffs</b><span class="index__cat">Dumpster rentals</span><span class="index__go" aria-hidden="true">&nearr;</span></a></li>
+      <li><a class="index__row" href="https://ascensionmowngeaux.com/" target="_blank" rel="noopener" data-img="assets/work/mow-n-geaux.jpg"><span class="mono">03</span><b>Ascension Mow N' Geaux</b><span class="index__cat">Lawn care & landscaping</span><span class="index__go" aria-hidden="true">&nearr;</span></a></li>
+      <li><a class="index__row" href="https://helping-hands-coral-alpha.vercel.app/" target="_blank" rel="noopener" data-img="assets/work/helping-hands.jpg"><span class="mono">04</span><b>Helping Hands Lawn Care</b><span class="index__cat">Lawn care</span><span class="index__go" aria-hidden="true">&nearr;</span></a></li>
+      <li><a class="index__row" href="https://santa-jim-hope-site.vercel.app/" target="_blank" rel="noopener" data-img="assets/work/santa-jim.jpg"><span class="mono">05</span><b>Santa Jim of Baton Rouge</b><span class="index__cat">Events & booking</span><span class="index__go" aria-hidden="true">&nearr;</span></a></li>
+      <li><a class="index__row" href="https://quotewake.vercel.app/" target="_blank" rel="noopener" data-img="assets/work/quotewake.jpg"><span class="mono">06</span><b>QuoteWake</b><span class="index__cat">SaaS product</span><span class="index__go" aria-hidden="true">&nearr;</span></a></li>
+      <li><a class="index__row" href="https://guild-os-ebon.vercel.app/" target="_blank" rel="noopener" data-img="assets/work/guild-os.jpg"><span class="mono">07</span><b>GuildOS</b><span class="index__cat">SaaS / gaming</span><span class="index__go" aria-hidden="true">&nearr;</span></a></li>
+      <li><a class="index__row" href="https://handfx-three.vercel.app/" target="_blank" rel="noopener" data-img="assets/work/handfx.jpg"><span class="mono">08</span><b>Hand Effects</b><span class="index__cat">Interactive</span><span class="index__go" aria-hidden="true">&nearr;</span></a></li>
+      <li><a class="index__row" href="https://unfiltered-beige.vercel.app/" target="_blank" rel="noopener" data-img="assets/work/unfiltered.jpg"><span class="mono">09</span><b>Unfiltered</b><span class="index__cat">Editorial / 3D</span><span class="index__go" aria-hidden="true">&nearr;</span></a></li>
+      <li><a class="index__row" href="https://resident-evil-eta.vercel.app/" target="_blank" rel="noopener" data-img="assets/work/resident-evil.jpg"><span class="mono">10</span><b>Resident Evil Archive</b><span class="index__cat">Fan archive</span><span class="index__go" aria-hidden="true">&nearr;</span></a></li>
+      <li><a class="index__row" href="https://targaryan.vercel.app/" target="_blank" rel="noopener" data-img="assets/work/black-queen.jpg"><span class="mono">11</span><b>The Black Queen</b><span class="index__cat">World-building</span><span class="index__go" aria-hidden="true">&nearr;</span></a></li>
+      <li><a class="index__row" href="https://magic-rpg.vercel.app/" target="_blank" rel="noopener" data-img="assets/work/rogue-star-walker.jpg"><span class="mono">12</span><b>The Rogue Star-Walker</b><span class="index__cat">Browser RPG</span><span class="index__go" aria-hidden="true">&nearr;</span></a></li>
+    </ul>
+  </section>
+  <div class="peek" id="peek" aria-hidden="true"><img alt=""></div>
 
   <section id="about" class="about wrap" aria-labelledby="about-h">
     <div class="about__grid">
@@ -509,11 +609,11 @@ section { position: relative; }
 
   <section id="contact" class="contact wrap" aria-labelledby="contact-h">
     <p class="contact__eyebrow mono" data-reveal>Got a project?</p>
-    <h2 id="contact-h" style="margin:0"><a class="contact__big" href="mailto:hello@example.com" data-cursor="link">Let's<br>talk.</a></h2>
+    <h2 id="contact-h" style="margin:0"><a class="contact__big" href="mailto:thomasdbiz26@gmail.com" data-cursor="link">Let's<br>talk.</a></h2>
     <div class="contact__row">
-      <a class="magnet" id="magnet" href="mailto:hello@example.com"><span>Start a<br>project</span></a>
+      <a class="magnet" id="magnet" href="mailto:thomasdbiz26@gmail.com"><span>Start a<br>project</span></a>
       <div style="display:grid;gap:20px">
-        <div class="email"><code id="email">hello@example.com</code><button type="button" id="copy">Copy</button></div>
+        <div class="email"><code id="email">thomasdbiz26@gmail.com</code><button type="button" id="copy">Copy</button></div>
         <ul class="contact__links mono">
           <li><a href="https://www.tiktok.com/" target="_blank" rel="noopener">TikTok</a></li>
           <li><a href="https://www.instagram.com/" target="_blank" rel="noopener">Instagram</a></li>
@@ -522,8 +622,8 @@ section { position: relative; }
       </div>
     </div>
     <footer class="footer mono">
-      <span>&copy; <span id="year">2026</span> Teddy Day</span>
-      <span>Designed and built by hand</span>
+      <span>&copy; <span id="year">2026</span> Thomas Day</span>
+      <a href="https://new-sidequest.vercel.app/" target="_blank" rel="noopener">Studio: SideQuest Creative &nearr;</a>
       <a href="#top">Back to top &uarr;</a>
     </footer>
   </section>
@@ -648,7 +748,7 @@ section { position: relative; }
       el.addEventListener('pointerenter', () => cur.classList.add('is-view'));
       el.addEventListener('pointerleave', () => cur.classList.remove('is-view'));
     });
-    $$('a:not([data-cursor="view"]), button, .step').forEach(el => {
+    $$('a:not([data-cursor="view"]):not(.index__row), button, .step').forEach(el => {
       el.addEventListener('pointerenter', () => cur.classList.add('is-link'));
       el.addEventListener('pointerleave', () => cur.classList.remove('is-link'));
     });
@@ -728,6 +828,15 @@ section { position: relative; }
   }
   setupPin(); addEventListener('resize', setupPin); addEventListener('load', setupPin);
 
+
+  /* index hover preview */
+  const peek = $('#peek'), peekImg = peek.querySelector('img');
+  const pk = { x: 0, y: 0, r: 0 };
+  if (fine) $$('.index__row').forEach(row => {
+    row.addEventListener('pointerenter', () => { peekImg.src = row.dataset.img; peek.classList.add('is-on'); cur.classList.add('is-view'); });
+    row.addEventListener('pointerleave', () => { peek.classList.remove('is-on'); cur.classList.remove('is-view'); });
+  });
+
   /* main loop */
   let last = performance.now();
   function frame(now) {
@@ -740,6 +849,11 @@ section { position: relative; }
       cur.style.transform = `translate(${mouse.x}px, ${mouse.y}px)`;
       magC.x = lerp(magC.x, magT.x, .15); magC.y = lerp(magC.y, magT.y, .15);
       mag.style.transform = `translate(${magC.x}px, ${magC.y}px)`;
+      if (peek.classList.contains('is-on')) {
+        const px = pk.x; pk.x = lerp(pk.x, mouse.tx + 28, .14); pk.y = lerp(pk.y, mouse.ty - 90, .14);
+        pk.r = lerp(pk.r, clamp((pk.x - px) * .4, -10, 10), .1);
+        peek.style.transform = `translate(${pk.x}px, ${pk.y}px) rotate(${pk.r}deg)`;
+      } else { pk.x = mouse.tx + 28; pk.y = mouse.ty - 90; }
     }
 
     // hero parallax
