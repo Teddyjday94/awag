@@ -76,3 +76,26 @@ create policy "staff manage invoices" on public.invoices for all to authenticate
 grant select, insert, update, delete on public.invoices to authenticated;
 alter publication supabase_realtime add table public.invoices;
 ```
+
+## Customer photos
+
+The quote form takes up to 5 photos. They are shrunk in the browser and stored
+in the private Supabase bucket `lead-photos`, in a folder named after the lead.
+Visitors can only add photos to a lead created in the last 30 minutes; only
+staff can view or delete them. Deleting a lead on the board deletes its photos.
+
+## Push alerts (ntfy)
+
+- Every website lead sends a push to the ntfy topic stored in
+  `private.settings` (key `ntfy_topic`). Subscribe to that topic in the ntfy app.
+- A morning digest goes out at 12:45 UTC (7:45am Central in summer, 6:45am in
+  winter) listing new requests, follow-ups due, estimates with no answer in
+  3+ days, and today's jobs. Nothing is sent on a quiet day.
+- To change the topic: `update private.settings set value = '<new topic>' where key = 'ntfy_topic';`
+
+## Review requests
+
+Jobs marked "Done & paid" show an "Ask for a review" box with a ready text
+message. It links to `review.html`, which sends customers to Google and
+Facebook. Once the Google Business Profile exists, replace the Google link in
+`review.html` (`id="review-google"`) with the profile's "Ask for reviews" link.

@@ -222,6 +222,9 @@ ul { list-style: none; margin: 0; padding: 0; }
 .quote-form label { display: grid; gap: 7px; color: var(--navy); font-size: .73rem; font-weight: 800; }
 .quote-form input, .quote-form select, .quote-form textarea { width: 100%; padding: 13px 14px; color: var(--ink); background: var(--foam); border: 1.5px solid var(--line); border-radius: 10px; font-size: .87rem; outline: none; transition: border-color .2s ease, background .2s ease, box-shadow .2s ease; }
 .quote-form textarea { resize: vertical; }
+.quote-form input[type="file"] { padding: 10px 12px; font-size: .8rem; cursor: pointer; }
+.form-optional { color: var(--muted); font-weight: 600; }
+.form-hint { color: var(--muted); font-size: .7rem; font-weight: 500; }
 .quote-form input:focus, .quote-form select:focus, .quote-form textarea:focus { background: var(--white); border-color: var(--gulf); box-shadow: 0 0 0 4px rgba(20,116,228,.09); }
 .form-note { color: var(--muted); text-align: center; font-size: .7rem; }
 .form-honeypot { position: absolute !important; left: -10000px !important; width: 1px !important; height: 1px !important; overflow: hidden !important; }
