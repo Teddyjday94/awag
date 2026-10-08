@@ -50,7 +50,7 @@
     .btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
     .linkbtn { background: none; border: 0; padding: 0; color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
 
-    .gate { max-width: 420px; margin: 8vh auto 0; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px 24px; display: grid; gap: 14px; text-align: center; }
+    .gate { width: 100%; max-width: 420px; margin: 8vh auto 0; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px 24px; display: grid; gap: 14px; text-align: center; }
     .gate img { width: 88px; height: 88px; border-radius: 14px; margin: 0 auto; }
     .gate h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 30px; color: var(--navy); }
     .gate p { margin: 0; color: var(--muted); }
@@ -153,11 +153,27 @@
     <div class="gate">
       <img src="assets/images/logo.jpg" alt="Ascension Wash N' Geaux logo">
       <h1>Lead Board</h1>
-      <p id="gate-text">Enter your email and we'll send you a sign-in link.</p>
+      <p id="gate-text">Sign in with your email and password.</p>
       <form id="login-form">
-        <label class="f">Email<input id="login-email" type="email" autocomplete="email" required placeholder="you@email.com"></label>
-        <button class="btn btn-primary" type="submit" id="login-btn">Email me a sign-in link</button>
+        <label class="f">Email<input id="login-email" type="email" autocomplete="username" required placeholder="you@email.com"></label>
+        <label class="f">Password<input id="login-password" type="password" autocomplete="current-password" required></label>
+        <button class="btn btn-primary" type="submit" id="login-btn">Sign in</button>
         <p class="msg" id="login-msg" role="status" aria-live="polite"></p>
+        <button class="linkbtn" type="button" id="to-link">First time here, or forgot your password?</button>
+      </form>
+      <form id="link-form" hidden>
+        <label class="f">Email<input id="link-email" type="email" autocomplete="email" required placeholder="you@email.com"></label>
+        <button class="btn btn-primary" type="submit" id="link-btn">Email me a link to set my password</button>
+        <p class="msg" id="link-msg" role="status" aria-live="polite"></p>
+        <button class="linkbtn" type="button" id="to-login">Back to sign in</button>
+      </form>
+      <form id="pw-form" hidden>
+        <input type="email" id="pw-user" autocomplete="username" hidden>
+        <label class="f">New password<input id="pw-new" type="password" autocomplete="new-password" minlength="8" required></label>
+        <label class="f">Type it again<input id="pw-again" type="password" autocomplete="new-password" minlength="8" required></label>
+        <button class="btn btn-primary" type="submit" id="pw-btn">Save password</button>
+        <p class="msg" id="pw-msg" role="status" aria-live="polite"></p>
+        <button class="linkbtn" type="button" id="pw-cancel" hidden>Cancel</button>
       </form>
       <button class="linkbtn" type="button" id="gate-signout" hidden>Sign out</button>
     </div>
@@ -173,6 +189,7 @@
       <div class="actions">
         <span class="who" id="who"></span>
         <button class="btn btn-primary" id="btn-new" type="button">+ New lead</button>
+        <button class="btn" id="btn-password" type="button">Change password</button>
         <button class="btn" id="btn-signout" type="button">Sign out</button>
       </div>
     </header>
@@ -242,6 +259,8 @@
     const SOURCES = ['Website quote form', 'Phone call', 'Text', 'Facebook', 'Referral', 'Yard sign', 'Other'];
     const H = 3600e3, D = 24 * H;
 
+    // Read before the client consumes it: arriving from an emailed link means "set your password".
+    const cameFromEmailLink = /[#&](access_token|error_description)=/.test(location.hash) || new URLSearchParams(location.search).has('code');
     const sb = window.supabase.createClient(CRM_URL, CRM_KEY);
     const $ = (s) => document.querySelector(s);
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -264,38 +283,105 @@
     function fail(error, what) { console.error(error); toast(what + ' didn’t save. Check your connection and try again.'); }
 
     // ---------- Sign-in ----------
+    // Staff sign in with email + password. The emailed link is only for setting
+    // a password the first time, or resetting a forgotten one.
+    let mustSetPassword = cameFromEmailLink;
+    let boardReady = false;
+    const say = (el, text, kind = '') => { el.className = 'msg' + (kind ? ' ' + kind : ''); el.textContent = text; };
+
+    function showForm(id) {
+      ['login-form', 'link-form', 'pw-form'].forEach((f) => ($('#' + f).hidden = f !== id));
+      $('#gate-signout').hidden = id !== 'pw-form' || boardReady;
+      $('#pw-cancel').hidden = !boardReady;
+    }
+
     function showGate(text, { signedIn = false } = {}) {
       $('#app').hidden = true; $('#gate').hidden = false;
       $('#gate-text').textContent = text;
-      $('#login-form').hidden = signedIn;
-      $('#gate-signout').hidden = !signedIn;
+      if (signedIn) { showForm(null); $('#gate-signout').hidden = false; } else showForm('login-form');
     }
+
+    function showPasswordForm(email, text) {
+      $('#app').hidden = true; $('#gate').hidden = false;
+      $('#gate-text').textContent = text;
+      $('#pw-form').reset(); $('#pw-user').value = email; say($('#pw-msg'), '');
+      showForm('pw-form');
+      $('#pw-new').focus();
+    }
+
+    $('#to-link').addEventListener('click', () => {
+      $('#link-email').value = $('#login-email').value.trim();
+      say($('#link-msg'), '');
+      $('#gate-text').textContent = 'We’ll email you a link. Open it on this device and you’ll be asked to choose a password.';
+      showForm('link-form');
+      $('#link-email').focus();
+    });
+    $('#to-login').addEventListener('click', () => { $('#gate-text').textContent = 'Sign in with your email and password.'; showForm('login-form'); });
 
     $('#login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = $('#login-email').value.trim().toLowerCase();
+      const password = $('#login-password').value;
       const msg = $('#login-msg'), btn = $('#login-btn');
-      if (!email) { msg.className = 'msg err'; msg.textContent = 'Enter your email address.'; return; }
-      btn.disabled = true; msg.className = 'msg'; msg.textContent = 'Sending…';
-      const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
+      if (!email || !password) return say(msg, 'Enter your email and password.', 'err');
+      btn.disabled = true; say(msg, 'Signing in…');
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
       btn.disabled = false;
-      if (error) { msg.className = 'msg err'; msg.textContent = error.message || 'The link could not be sent. Try again in a minute.'; return; }
-      msg.className = 'msg ok'; msg.textContent = 'Check your email for the sign-in link. You can close this tab.';
+      if (error) {
+        const bad = /invalid login credentials/i.test(error.message || '');
+        return say(msg, bad ? 'That email and password don’t match. If you haven’t set a password yet, use the link below.' : (error.message || 'Sign-in failed. Try again in a minute.'), 'err');
+      }
+      say(msg, '');
+      start(data.session);
     });
 
-    const signOut = async () => { await sb.auth.signOut(); location.reload(); };
+    $('#link-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = $('#link-email').value.trim().toLowerCase();
+      const msg = $('#link-msg'), btn = $('#link-btn');
+      if (!email) return say(msg, 'Enter your email address.', 'err');
+      btn.disabled = true; say(msg, 'Sending…');
+      const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
+      btn.disabled = false;
+      if (error) return say(msg, error.message || 'The link could not be sent. Try again in a minute.', 'err');
+      say(msg, 'Check your email for the link. You can close this tab.', 'ok');
+    });
+
+    $('#pw-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const pw = $('#pw-new').value, again = $('#pw-again').value;
+      const msg = $('#pw-msg'), btn = $('#pw-btn');
+      if (pw.length < 8) return say(msg, 'Use at least 8 characters.', 'err');
+      if (pw !== again) return say(msg, 'The two passwords don’t match.', 'err');
+      btn.disabled = true; say(msg, 'Saving…');
+      const { error } = await sb.auth.updateUser({ password: pw });
+      btn.disabled = false;
+      if (error) return say(msg, error.message || 'The password didn’t save. Try again.', 'err');
+      mustSetPassword = false;
+      if (boardReady) { $('#gate').hidden = true; $('#app').hidden = false; toast('Password saved'); return; }
+      const { data } = await sb.auth.getSession();
+      start(data.session, { justSetPassword: true });
+    });
+
+    $('#pw-cancel').addEventListener('click', () => { $('#gate').hidden = true; $('#app').hidden = false; });
+    $('#btn-password').addEventListener('click', () => showPasswordForm($('#who').textContent, 'Choose a new password for the Lead Board.'));
+
+    const signOut = async () => { await sb.auth.signOut(); location.replace(location.pathname); };
     $('#btn-signout').addEventListener('click', signOut);
     $('#gate-signout').addEventListener('click', signOut);
 
-    async function start(session) {
-      if (!session) return showGate('Enter your email and we’ll send you a sign-in link.');
+    async function start(session, { justSetPassword = false } = {}) {
+      if (!session) return showGate('Sign in with your email and password.');
       const email = session.user.email;
       const { data: staff, error } = await sb.from('staff').select('email').limit(1);
       if (error || !staff?.length) {
         return showGate(`${email} isn’t on the staff list for this board. Ask the owner to add it.`, { signedIn: true });
       }
+      if (mustSetPassword) return showPasswordForm(email, 'Choose a password. Next time, sign in with your email and this password.');
       $('#gate').hidden = true; $('#app').hidden = false;
       $('#who').textContent = email;
+      boardReady = true;
+      if (justSetPassword) toast('Password saved. Use it to sign in next time.');
       await loadLeads();
       subscribe();
     }
