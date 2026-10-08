@@ -14,7 +14,7 @@ const assets = [
   'assets/images/commercial-office-building-after.jpg',
   'assets/images/commercial-concrete-before-after.jpg',
   'assets/images/commercial-wall-before-after.jpg',
-  'assets/images/commercial-surface-cleaner-poster.jpg',
+  'assets/images/unused/commercial-surface-cleaner-poster.jpg',
   'assets/images/commercial-walkway-before.jpg',
   'assets/images/commercial-walkway-after.jpg',
   'assets/video/commercial-surface-cleaner.mp4',
