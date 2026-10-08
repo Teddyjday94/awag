@@ -35,3 +35,44 @@ To remove someone: `delete from public.staff where email = 'name@example.com';`
   A repeat from the same phone number within 10 minutes is ignored, and the
   form's hidden spam field is checked.
 - "+ New lead" on the board adds calls, texts, referrals, and so on.
+
+## Invoices for finished jobs
+
+Moving a lead to "Done & paid" opens an invoice form, filled in with the
+service and the estimate. Add lines, sales tax and a note, then "Create & email
+invoice". The invoice gets the next number (starting at 1001), is saved with the
+lead, and a PDF is emailed to thomasdbiz26@gmail.com through FormSubmit, the
+same service the quote form uses. Reply to that email (it replies to the
+customer) or forward the PDF when you are ready to bill them. The lead's sheet
+keeps every invoice with "Download PDF" and "Email again".
+
+The business name, phone and email printed on invoices are in `BUSINESS` at the
+top of `invoice.mjs`. The `invoices` table was added with this SQL:
+
+```sql
+create table public.invoices (
+  id uuid primary key default gen_random_uuid(),
+  number integer generated always as identity (start with 1001) unique,
+  lead_id uuid not null references public.leads(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  created_by text default (auth.jwt() ->> 'email'),
+  bill_name text not null check (char_length(bill_name) between 1 and 200),
+  bill_phone text check (char_length(bill_phone) <= 40),
+  bill_email text check (char_length(bill_email) <= 200),
+  bill_address text check (char_length(bill_address) <= 300),
+  job_date date,
+  items jsonb not null check (jsonb_typeof(items) = 'array' and jsonb_array_length(items) between 1 and 50),
+  tax_rate numeric not null default 0 check (tax_rate >= 0 and tax_rate <= 25),
+  subtotal numeric not null check (subtotal >= 0),
+  tax numeric not null default 0 check (tax >= 0),
+  total numeric not null check (total >= 0),
+  notes text check (char_length(notes) <= 2000),
+  emailed_at timestamptz
+);
+create index invoices_lead_id_idx on public.invoices (lead_id);
+alter table public.invoices enable row level security;
+create policy "staff manage invoices" on public.invoices for all to authenticated
+  using (private.is_staff()) with check (private.is_staff());
+grant select, insert, update, delete on public.invoices to authenticated;
+alter publication supabase_realtime add table public.invoices;
+```

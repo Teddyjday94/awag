@@ -138,6 +138,17 @@
     .modal { position: fixed; z-index: 21; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(520px, calc(100% - 32px)); max-height: calc(100% - 32px); overflow-y: auto; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); padding: 20px; display: grid; gap: 12px; }
     .modal h2 { margin: 0; font-size: 18px; font-weight: 800; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .inv-items { display: grid; gap: 8px; }
+    .inv-row { display: grid; grid-template-columns: minmax(0, 1fr) 64px 96px 30px; gap: 6px; align-items: center; }
+    .inv-row input { font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; min-width: 0; }
+    .inv-row .rm { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; width: 30px; height: 30px; line-height: 1; color: var(--muted); }
+    .inv-head { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .inv-total { display: flex; justify-content: space-between; align-items: baseline; font-weight: 800; border-top: 1px solid var(--line); padding-top: 10px; }
+    .inv-total .num { font-size: 20px; color: var(--navy); font-variant-numeric: tabular-nums; }
+    .inv-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+    .inv-list li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 10px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 13px; }
+    .inv-list .acts { display: flex; gap: 6px; }
+    .inv-list .btn { padding: 6px 12px; font-size: 12px; }
     .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--navy); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-weight: 700; font-size: 13px; z-index: 30; }
     @media (max-width: 520px) {
       .wrap { padding-inline: 16px; }
@@ -241,11 +252,32 @@
     </div>
   </form>
 
+  <form class="modal" id="inv-form" hidden role="dialog" aria-labelledby="inv-h" novalidate>
+    <div><h2 id="inv-h">Invoice</h2><p class="msg" id="inv-sub" style="margin:2px 0 0"></p></div>
+    <div class="inv-items">
+      <div class="inv-row inv-head" aria-hidden="true"><span>Description</span><span>Qty</span><span>Price ($)</span><span></span></div>
+      <div id="inv-rows" class="inv-items"></div>
+      <div><button class="linkbtn" type="button" id="inv-add">+ Add a line</button></div>
+    </div>
+    <div class="grid2">
+      <label class="f">Sales tax (%)<input id="inv-tax" type="number" min="0" max="25" step="0.01" inputmode="decimal" value="0"></label>
+      <label class="f">Service date<input id="inv-date" type="date"></label>
+    </div>
+    <label class="f">Note on the invoice<textarea id="inv-notes" rows="2" maxlength="2000" placeholder="Optional: payment terms, warranty, thanks…"></textarea></label>
+    <div class="inv-total"><span>Total due</span><span class="num" id="inv-total">$0.00</span></div>
+    <p class="msg err" id="inv-err" role="status"></p>
+    <div class="modal-actions">
+      <button class="btn" type="button" id="inv-cancel">Not now</button>
+      <button class="btn btn-primary" type="submit" id="inv-save">Create &amp; email invoice</button>
+    </div>
+  </form>
+
   <div class="toast" id="toast" hidden role="status"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
   <script type="module">
     import { CRM_URL, CRM_KEY } from './crm-config.mjs';
+    import { computeInvoice, validateInvoice, draftItems, drawInvoice, emailInvoice, invoiceFileName, usd } from './invoice.mjs';
 
     const STAGES = [
       { id: 'new', label: 'New request', dot: 'var(--accent)' },
@@ -276,6 +308,7 @@
     let leads = [];
     let openId = null;
     let openNotes = [];
+    let invoices = [];
     let channel = null;
 
     let toastTimer;
@@ -382,7 +415,7 @@
       $('#who').textContent = email;
       boardReady = true;
       if (justSetPassword) toast('Password saved. Use it to sign in next time.');
-      await loadLeads();
+      await Promise.all([loadLeads(), loadInvoices()]);
       subscribe();
     }
 
@@ -408,6 +441,13 @@
       if (openId === id) { openNotes = data; renderSheet(); }
     }
 
+    async function loadInvoices() {
+      const { data, error } = await sb.from('invoices').select('*').order('created_at', { ascending: false });
+      if (error) return console.error(error); // the board still works without invoices
+      invoices = data;
+      if (openId) renderSheet();
+    }
+
     function subscribe() {
       if (channel) return;
       channel = sb.channel('crm')
@@ -422,6 +462,7 @@
           }
           renderAll();
         })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, loadInvoices)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'lead_notes' }, (p) => {
           const id = p.new?.lead_id || p.old?.lead_id;
           if (openId && (!id || id === openId)) loadNotes(openId);
@@ -455,6 +496,7 @@
       if (!saved) return;
       addNote(id, 'Moved to ' + stageOf(stage).label, 'stage');
       toast(l.name + ' moved to ' + stageOf(stage).label);
+      if (stage === 'done' && !invoices.some((i) => i.lead_id === id)) openInvoiceForm(saved);
     }
 
     // ---------- Board ----------
@@ -552,7 +594,10 @@
     // ---------- Lead sheet ----------
     const sheet = $('#sheet'), scrim = $('#scrim');
     function openSheet(id) { openId = id; openNotes = []; renderSheet(); sheet.hidden = false; scrim.hidden = false; sheet.querySelector('.x').focus(); loadNotes(id); }
-    function closeAll() { openId = null; sheet.hidden = true; $('#new-form').hidden = true; scrim.hidden = true; }
+    function closeAll() {
+      if (!$('#inv-form').hidden) { $('#inv-form').hidden = true; if (openId) return; } // the invoice form closes back to the lead
+      openId = null; sheet.hidden = true; $('#new-form').hidden = true; scrim.hidden = true;
+    }
     scrim.addEventListener('click', closeAll);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAll(); });
     document.addEventListener('click', (e) => { const b = e.target.closest('[data-open]'); if (b) openSheet(b.dataset.open); });
@@ -564,6 +609,7 @@
       const draft = sheet.querySelector('#d-note')?.value || '';
       const hadFocus = document.activeElement?.id === 'd-note';
       const f = flag(l);
+      const invs = invoices.filter((i) => i.lead_id === l.id);
       const dateField = l.stage === 'booked' || l.stage === 'done'
         ? `<label class="f">Job date<input id="d-job" type="date" value="${esc(l.job_date || '')}"></label>`
         : l.stage === 'lost'
@@ -588,6 +634,12 @@
             <label class="f">Estimate ($)<input id="d-est" type="number" min="0" step="5" inputmode="numeric" value="${l.estimate ?? ''}" placeholder="0"></label>
             ${dateField}
           </div>
+          ${l.stage === 'done' || invs.length ? `<div>
+            <h3 class="h3">Invoices</h3>
+            ${invs.length ? `<ul class="inv-list">${invs.map((i) => `<li><span><strong>#${i.number}</strong> · ${esc(usd(i.total))} · ${i.emailed_at ? 'emailed ' + ago(ts(i.emailed_at)) : 'not emailed yet'}</span>
+              <span class="acts"><button class="btn" type="button" data-inv-pdf="${i.id}">Download PDF</button><button class="btn" type="button" data-inv-email="${i.id}">${i.emailed_at ? 'Email again' : 'Email it'}</button></span></li>`).join('')}</ul>` : ''}
+            <button class="linkbtn" type="button" id="d-invoice" style="margin-top:8px">${invs.length ? '+ Another invoice' : 'Create invoice'}</button>
+          </div>` : ''}
           <div>
             <h3 class="h3">Notes &amp; history</h3>
             <ul class="log">
@@ -616,6 +668,10 @@
         await addNote(l.id, v);
         if (l.stage === 'new') moveTo(l.id, 'contacted');
       });
+
+      sheet.querySelector('#d-invoice')?.addEventListener('click', () => openInvoiceForm(l));
+      sheet.querySelectorAll('[data-inv-pdf]').forEach((b) => b.addEventListener('click', () => downloadInvoice(invoices.find((i) => i.id === b.dataset.invPdf))));
+      sheet.querySelectorAll('[data-inv-email]').forEach((b) => b.addEventListener('click', () => sendInvoice(invoices.find((i) => i.id === b.dataset.invEmail), b)));
 
       const del = sheet.querySelector('#d-delete');
       del.addEventListener('click', async () => {
@@ -647,6 +703,112 @@
       if (error) { $('#n-err').textContent = 'That lead didn’t save. Check your connection and try again.'; return console.error(error); }
       if (!leads.some((l) => l.id === data.id)) leads.unshift(data);
       closeAll(); renderAll(); toast(data.name + ' added to New request');
+    });
+
+    // ---------- Invoices ----------
+    // Marking a job "Done & paid" offers an invoice. Saving it stores it with the lead,
+    // builds a PDF, and emails it to the business inbox to forward to the customer.
+    let jsPdfLoad;
+    function loadJsPdf() {
+      jsPdfLoad ||= new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
+        s.onload = () => resolve(window.jspdf.jsPDF);
+        s.onerror = () => { jsPdfLoad = null; reject(new Error('PDF tool didn’t load')); };
+        document.head.append(s);
+      });
+      return jsPdfLoad;
+    }
+    async function invoicePdf(inv) {
+      const JsPDF = await loadJsPdf();
+      return drawInvoice(new JsPDF({ unit: 'pt', format: 'letter' }), inv);
+    }
+    async function downloadInvoice(inv) {
+      if (!inv) return;
+      try { (await invoicePdf(inv)).save(invoiceFileName(inv)); }
+      catch (e) { console.error(e); toast('The PDF didn’t build. Check your connection and try again.'); }
+    }
+    async function sendInvoice(inv, btn) {
+      if (!inv) return;
+      if (btn) btn.disabled = true;
+      try {
+        const pdf = await invoicePdf(inv);
+        await emailInvoice(inv, pdf.output('blob'));
+        const { data } = await sb.from('invoices').update({ emailed_at: new Date().toISOString() }).eq('id', inv.id).select().single();
+        if (data) invoices = invoices.map((i) => (i.id === data.id ? data : i));
+        addNote(inv.lead_id, `Invoice #${inv.number} (${usd(inv.total)}) emailed to the business inbox`, 'stage');
+        toast(`Invoice #${inv.number} emailed. Check the business inbox.`);
+        if (openId) renderSheet();
+        return true;
+      } catch (e) {
+        console.error(e);
+        toast(`Invoice #${inv.number} is saved, but the email didn’t go. Use “Email it” on the lead to retry.`);
+        if (btn) btn.disabled = false;
+        return false;
+      }
+    }
+
+    const invf = $('#inv-form'), invRows = $('#inv-rows');
+    let invLead = null;
+    function invRow(item = { desc: '', qty: 1, price: '' }) {
+      const row = document.createElement('div');
+      row.className = 'inv-row';
+      row.innerHTML = `<input class="i-desc" aria-label="Description" maxlength="200" placeholder="What was done">
+        <input class="i-qty" aria-label="Quantity" type="number" min="0" step="any" inputmode="decimal">
+        <input class="i-price" aria-label="Price" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
+        <button class="rm" type="button" aria-label="Remove line">×</button>`;
+      row.querySelector('.i-desc').value = item.desc;
+      row.querySelector('.i-qty').value = item.qty;
+      row.querySelector('.i-price').value = item.price === '' ? '' : item.price;
+      row.querySelector('.rm').addEventListener('click', () => { row.remove(); if (!invRows.children.length) invRows.append(invRow()); invTotals(); });
+      invRows.append(row);
+      return row;
+    }
+    function readInvoice() {
+      const items = [...invRows.children].map((r) => ({ desc: r.querySelector('.i-desc').value, qty: r.querySelector('.i-qty').value, price: r.querySelector('.i-price').value }));
+      return computeInvoice({ items, taxRate: $('#inv-tax').value });
+    }
+    function invTotals() { $('#inv-total').textContent = usd(readInvoice().total); }
+    invf.addEventListener('input', invTotals);
+    $('#inv-add').addEventListener('click', () => { invRow().querySelector('.i-desc').focus(); });
+    $('#inv-cancel').addEventListener('click', closeAll);
+
+    function openInvoiceForm(lead) {
+      invLead = lead;
+      invRows.innerHTML = '';
+      draftItems(lead).forEach((i) => invRow(i));
+      $('#inv-tax').value = '0';
+      $('#inv-date').value = lead.job_date || isoDay(new Date());
+      $('#inv-notes').value = '';
+      $('#inv-err').textContent = '';
+      $('#inv-h').textContent = 'Invoice for ' + lead.name;
+      $('#inv-sub').textContent = 'It’s emailed to the business inbox for you to forward to the customer.';
+      invTotals();
+      $('#new-form').hidden = true;
+      invf.hidden = false; scrim.hidden = false;
+      invRows.querySelector('.i-price').focus();
+    }
+
+    invf.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const lead = leads.find((l) => l.id === invLead?.id) || invLead;
+      const inv = readInvoice();
+      const problem = validateInvoice(inv);
+      if (problem) { $('#inv-err').textContent = problem; return; }
+      $('#inv-save').disabled = true;
+      const { data, error } = await sb.from('invoices').insert({
+        lead_id: lead.id, bill_name: lead.name, bill_phone: lead.phone || null, bill_email: lead.email || null, bill_address: lead.address || null,
+        job_date: $('#inv-date').value || null, items: inv.items, tax_rate: inv.taxRate, subtotal: inv.subtotal, tax: inv.tax, total: inv.total,
+        notes: $('#inv-notes').value.trim() || null,
+      }).select().single();
+      if (error) { $('#inv-save').disabled = false; $('#inv-err').textContent = 'That invoice didn’t save. Check your connection and try again.'; return console.error(error); }
+      if (!invoices.some((i) => i.id === data.id)) invoices.unshift(data);
+      addNote(lead.id, `Invoice #${data.number} created for ${usd(data.total)}`, 'stage');
+      invf.hidden = true;
+      if (!openId) scrim.hidden = true;
+      $('#inv-save').disabled = false;
+      if (openId) renderSheet();
+      await sendInvoice(data);
     });
 
     // Re-check "time since" labels every minute
