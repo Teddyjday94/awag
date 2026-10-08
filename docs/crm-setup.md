@@ -8,8 +8,8 @@ Quote requests from the website are saved to a Supabase database (project
 
 Authentication → URL Configuration:
 
-- Site URL: `https://teddyjday94.github.io/awag/crm.html`
-- Redirect URLs: add `https://teddyjday94.github.io/awag/crm.html`
+- Site URL: `https://ascensionwashngeaux.com/crm.html`
+- Redirect URLs: add `https://ascensionwashngeaux.com/crm.html`
 
 Without this, the emailed sign-in link sends people to localhost.
 
