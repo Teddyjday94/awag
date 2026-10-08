@@ -24,4 +24,5 @@ jobs:
           node tests/verify-structure.mjs
           node tests/verify-commercial-portfolio.mjs
           node tests/verify-estimate.mjs
+          node tests/verify-invoice.mjs
           if [ -f tests/verify-multipage.mjs ]; then node tests/verify-multipage.mjs; fi
