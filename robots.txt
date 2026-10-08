@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://teddyjday94.github.io/awag/sitemap.xml
