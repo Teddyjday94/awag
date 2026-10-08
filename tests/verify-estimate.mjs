@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   buildEstimatePayload,
   buildLeadPayload,
+  uploadLeadPhotos,
   submitEstimateRequest,
   validateEstimate,
 } from '../estimate-form.mjs';
@@ -50,7 +51,7 @@ const result = await submitEstimateRequest(validEstimate, async (url, options) =
   return { ok: true, json: async () => ({ success: 'true' }) };
 });
 
-assert.deepEqual(result, { ok: true }, 'successful delivery should be reported to the form');
+assert.equal(result.ok, true, 'successful delivery should be reported to the form');
 assert.equal(requests.length, 2, 'the request should go to email and to the lead board');
 const emailRequest = requests.find((r) => r.url.startsWith('https://formsubmit.co/'));
 assert.equal(emailRequest.url, 'https://formsubmit.co/ajax/thomasdbiz26@gmail.com');
@@ -63,19 +64,19 @@ assert.ok(leadRequest, 'the lead should be saved to the CRM');
 assert.match(leadRequest.options.headers.apikey, /^sb_publishable_/, 'only the publishable key may ship in the site');
 assert.deepEqual(JSON.parse(leadRequest.options.body), buildLeadPayload(validEstimate));
 
-assert.deepEqual(
-  await submitEstimateRequest(validEstimate, async (url) => (
+assert.equal(
+  (await submitEstimateRequest(validEstimate, async (url) => (
     url.startsWith('https://formsubmit.co/') ? { ok: false, status: 500 } : { ok: true }
-  )),
-  { ok: true },
+  ))).ok,
+  true,
   'a saved lead should count as success even if the email service is down',
 );
 
-assert.deepEqual(
-  await submitEstimateRequest(validEstimate, async (url) => (
+assert.equal(
+  (await submitEstimateRequest(validEstimate, async (url) => (
     url.startsWith('https://formsubmit.co/') ? { ok: true, json: async () => ({ success: 'true' }) } : { ok: false, status: 503 }
-  )),
-  { ok: true },
+  ))).ok,
+  true,
   'a sent email should count as success even if the lead board is down',
 );
 
@@ -88,5 +89,38 @@ await assert.rejects(
 let honeyCalls = 0;
 await submitEstimateRequest({ ...validEstimate, _honey: 'bot' }, async () => { honeyCalls += 1; return { ok: true }; });
 assert.equal(honeyCalls, 0, 'spam caught by the honeypot should not be sent anywhere');
+
+// Photos: filed under the new lead's id, capped at 5, and never block the request.
+const leadId = '6c71c96e-8770-4748-8c14-c656052a606e';
+const fakePhoto = (type = 'image/jpeg') => ({ type, size: 1000 });
+const photoCalls = [];
+const withPhotos = await submitEstimateRequest(validEstimate, async (url, options) => {
+  photoCalls.push({ url, options });
+  if (url.startsWith('https://formsubmit.co/')) return { ok: true, json: async () => ({ success: 'true' }) };
+  if (url.endsWith('/rpc/submit_estimate')) return { ok: true, json: async () => leadId };
+  return { ok: true };
+}, [fakePhoto(), fakePhoto('image/png'), fakePhoto(), fakePhoto(), fakePhoto(), fakePhoto()], async (p) => p);
+const uploads = photoCalls.filter((c) => c.url.includes('/storage/v1/object/lead-photos/'));
+assert.equal(uploads.length, 5, 'at most 5 photos should upload');
+assert.match(uploads[0].url, new RegExp(`/lead-photos/${leadId}/0\\.jpg$`), 'photos go in a folder named after the lead');
+assert.match(uploads[1].url, /\/1\.png$/, 'the file extension should follow the photo type');
+assert.equal(uploads[0].options.headers['x-upsert'], 'false', 'uploads must never overwrite');
+assert.equal(withPhotos.photosSaved, 5);
+const emailWithPhotos = JSON.parse(photoCalls.find((c) => c.url.startsWith('https://formsubmit.co/')).options.body);
+assert.equal(emailWithPhotos.photos, '5 photos on the lead board', 'the email should say photos are on the board');
+
+const noLeadIdCalls = [];
+const noLead = await submitEstimateRequest(validEstimate, async (url) => {
+  noLeadIdCalls.push(url);
+  return url.startsWith('https://formsubmit.co/') ? { ok: true, json: async () => ({ success: 'true' }) } : { ok: false, status: 503 };
+}, [fakePhoto()], async (p) => p);
+assert.equal(noLead.ok, true, 'the request still succeeds by email when the board is down');
+assert.equal(noLeadIdCalls.some((u) => u.includes('/storage/')), false, 'no photo upload is tried without a lead id');
+
+assert.equal(
+  await uploadLeadPhotos(leadId, [fakePhoto(), fakePhoto()], async (url) => (url.endsWith('/0.jpg') ? { ok: false, status: 400 } : { ok: true }), async (p) => p),
+  1,
+  'one failed photo should not stop the others',
+);
 
 console.log('Verified estimate validation, delivery payload, success, and failure behavior.');

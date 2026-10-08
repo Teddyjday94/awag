@@ -359,3 +359,7 @@ body[data-page] .main-nav .nav-cta[aria-current="page"] { color: var(--white); b
   .page-hero::before, .page-hero::after, .page-hero-media > img, .page-hero-media:hover > img, .home-gallery a:hover, .home-gallery a:focus-visible, .featured-service:hover, .mini-proof:hover, .contact-card:hover, .next-step:hover, .process-step:hover .process-step-copy, .process-step:hover .process-step-number, .photo-ribbon img:hover { transform: none !important; }
   .home-gallery a::after { display: none; }
 }
+
+.area-link { position: relative; z-index: 1; display: inline-block; margin-top: 12px; color: var(--white); font-weight: 800; font-size: .8rem; text-decoration: none; }
+.area-link:hover, .area-link:focus-visible { text-decoration: underline; }
+.review-help { margin-top: 14px; color: var(--muted); font-size: .8rem; }

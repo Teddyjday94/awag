@@ -150,6 +150,34 @@
     .inv-list .acts { display: flex; gap: 6px; }
     .inv-list .btn { padding: 6px 12px; font-size: 12px; }
     .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--navy); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-weight: 700; font-size: 13px; z-index: 30; }
+    .view-toggle { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px; }
+    .view-toggle .stage-btn { border: 0; }
+    .cal { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 12px; min-width: 0; }
+    .cal-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .cal-head h2 { margin: 0 4px; font-size: 17px; font-weight: 800; min-width: 150px; text-align: center; }
+    .cal-head .btn { padding: 6px 12px; }
+    .cal-sum { margin-left: auto; color: var(--muted); font-size: 12px; font-weight: 700; }
+    .cal-scroll { overflow-x: auto; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(92px, 1fr)); gap: 4px; min-width: 660px; }
+    .cal-dow { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 2px 6px; }
+    .cal-day { min-height: 86px; background: var(--bg); border-radius: 8px; padding: 6px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .cal-day.out { opacity: .45; }
+    .cal-day.today { outline: 2px solid var(--accent); outline-offset: -2px; }
+    .cal-num { font-size: 12px; font-weight: 800; color: var(--muted); }
+    .cal-job { display: block; width: 100%; text-align: left; border: 0; border-left: 3px solid var(--green); background: var(--green-bg); color: var(--ink); border-radius: 6px; padding: 3px 6px; font-size: 12px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cal-job.done { border-left-color: var(--navy); background: var(--slate-bg); }
+    .cal-job .num { font-weight: 600; color: var(--muted); }
+    .cal-undated { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .cal-undated .h3 { width: 100%; margin: 0; }
+    .cal-undated .cal-job { width: auto; }
+    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+    .photo-grid a { display: block; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: var(--surface-2); max-width: 100%; }
+    .photo-grid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .review-box { background: var(--surface-2); border-radius: 10px; padding: 12px; display: grid; gap: 8px; }
+    .review-box .h3 { margin: 0; }
+    .review-text { margin: 0; font-size: 13px; }
+    .review-box .acts { display: flex; flex-wrap: wrap; gap: 8px; }
+    .review-box .btn { text-decoration: none; }
     @media (max-width: 520px) {
       .wrap { padding-inline: 16px; }
       .grid2 { grid-template-columns: 1fr; }
@@ -224,9 +252,12 @@
       <div class="field-inline"><label for="q">Search</label><input id="q" type="search" placeholder="Name, town, phone…"></div>
       <div class="field-inline"><label for="fsvc">Service</label><select id="fsvc"><option value="">All services</option></select></div>
       <div class="field-inline"><label for="fsrc">Came from</label><select id="fsrc"><option value="">Anywhere</option></select></div>
+      <div class="view-toggle" role="group" aria-label="View"><button type="button" class="stage-btn" data-view="board" aria-pressed="true">Board</button><button type="button" class="stage-btn" data-view="calendar" aria-pressed="false">Calendar</button></div>
+      <button class="btn" id="btn-export" type="button">Export to spreadsheet</button>
     </div>
 
-    <div class="board-scroll"><div class="board" id="board"></div></div>
+    <div class="board-scroll" id="board-wrap"><div class="board" id="board"></div></div>
+    <section class="cal" id="cal" hidden aria-label="Job calendar"></section>
   </main>
 
   <div class="scrim" id="scrim" hidden></div>
@@ -276,7 +307,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
   <script type="module">
-    import { CRM_URL, CRM_KEY } from './crm-config.mjs';
+    import { CRM_URL, CRM_KEY, REVIEW_URL } from './crm-config.mjs';
+    import { leadsToCsv, monthGrid, reviewMessage, smsHref } from './crm-tools.mjs';
     import { computeInvoice, validateInvoice, draftItems, drawInvoice, emailInvoice, invoiceFileName, usd } from './invoice.mjs';
 
     const STAGES = [
@@ -309,6 +341,9 @@
     let openId = null;
     let openNotes = [];
     let invoices = [];
+    let openPhotos = [];
+    let view = 'board';
+    let calMonth = (() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() }; })();
     let channel = null;
 
     let toastTimer;
@@ -523,8 +558,8 @@
     const fsvc = $('#fsvc'), fsrc = $('#fsrc'), q = $('#q');
     SERVICES.forEach((s) => fsvc.add(new Option(s, s)));
     SOURCES.forEach((s) => fsrc.add(new Option(s, s)));
-    [fsvc, fsrc].forEach((el) => el.addEventListener('change', renderBoard));
-    q.addEventListener('input', renderBoard);
+    [fsvc, fsrc].forEach((el) => el.addEventListener('change', renderView));
+    q.addEventListener('input', renderView);
     function visible(l) {
       if (fsvc.value && l.service !== fsvc.value) return false;
       if (fsrc.value && l.source !== fsrc.value) return false;
@@ -581,7 +616,62 @@
       }).join('');
     }
 
-    function renderAll() { renderStats(); renderTodo(); renderBoard(); if (openId) renderSheet(); }
+    function renderView() {
+      $('#board-wrap').hidden = view !== 'board';
+      $('#cal').hidden = view !== 'calendar';
+      document.querySelectorAll('[data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === view)));
+      if (view === 'board') renderBoard(); else renderCalendar();
+    }
+
+    function renderAll() { renderStats(); renderTodo(); renderView(); if (openId) renderSheet(); }
+
+    // ---------- Calendar ----------
+    // Booked and finished jobs on their job date, one month at a time.
+    function renderCalendar() {
+      const today = isoDay(new Date());
+      const jobs = leads.filter((l) => (l.stage === 'booked' || l.stage === 'done') && visible(l));
+      const byDay = {};
+      jobs.filter((l) => l.job_date).forEach((l) => { (byDay[l.job_date] ||= []).push(l); });
+      const undated = jobs.filter((l) => l.stage === 'booked' && !l.job_date);
+      const label = new Date(calMonth.y, calMonth.m, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const weeks = monthGrid(calMonth.y, calMonth.m);
+      const inMonth = weeks.flat().filter((d) => d.inMonth).flatMap((d) => byDay[d.iso] || []);
+      const monthTotal = inMonth.reduce((a, l) => a + (Number(l.estimate) || 0), 0);
+      $('#cal').innerHTML = `
+        <div class="cal-head">
+          <button class="btn" type="button" data-cal="-1" aria-label="Previous month">‹</button>
+          <h2>${esc(label)}</h2>
+          <button class="btn" type="button" data-cal="1" aria-label="Next month">›</button>
+          <button class="linkbtn" type="button" data-cal="0">Today</button>
+          <span class="cal-sum num">${inMonth.length} job${inMonth.length === 1 ? '' : 's'}${monthTotal ? ' · ' + money(monthTotal) : ''}</span>
+        </div>
+        <div class="cal-scroll"><div class="cal-grid" role="grid">
+          ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => `<div class="cal-dow" role="columnheader">${d}</div>`).join('')}
+          ${weeks.flat().map((d) => `<div class="cal-day${d.inMonth ? '' : ' out'}${d.iso === today ? ' today' : ''}" role="gridcell">
+            <span class="cal-num">${d.day}</span>
+            ${(byDay[d.iso] || []).map((l) => `<button type="button" class="cal-job${l.stage === 'done' ? ' done' : ''}" data-open="${l.id}" title="${esc(l.name + ' · ' + l.service)}">${esc(l.name.split(' ·')[0])}${l.estimate != null ? ` <span class="num">${money(l.estimate)}</span>` : ''}</button>`).join('')}
+          </div>`).join('')}
+        </div></div>
+        ${undated.length ? `<div class="cal-undated"><h3 class="h3">Booked, no date yet</h3>${undated.map((l) => `<button type="button" class="cal-job" data-open="${l.id}">${esc(l.name)}</button>`).join('')}</div>` : ''}`;
+      $('#cal').querySelectorAll('[data-cal]').forEach((b) => b.addEventListener('click', () => {
+        const step = Number(b.dataset.cal);
+        if (step === 0) { const d = new Date(); calMonth = { y: d.getFullYear(), m: d.getMonth() }; }
+        else { const d = new Date(calMonth.y, calMonth.m + step, 1); calMonth = { y: d.getFullYear(), m: d.getMonth() }; }
+        renderCalendar();
+      }));
+    }
+
+    document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => { view = b.dataset.view; renderView(); }));
+
+    // ---------- Export ----------
+    $('#btn-export').addEventListener('click', () => {
+      const rows = leads.filter(visible).sort((a, b) => ts(b.created_at) - ts(a.created_at));
+      const url = URL.createObjectURL(new Blob([leadsToCsv(rows)], { type: 'text/csv;charset=utf-8' }));
+      const a = Object.assign(document.createElement('a'), { href: url, download: `wash-n-geaux-leads-${isoDay(new Date())}.csv` });
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast(`Exported ${rows.length} lead${rows.length === 1 ? '' : 's'}`);
+    });
 
     // Drag cards between columns
     let dragId = null;
@@ -593,7 +683,19 @@
 
     // ---------- Lead sheet ----------
     const sheet = $('#sheet'), scrim = $('#scrim');
-    function openSheet(id) { openId = id; openNotes = []; renderSheet(); sheet.hidden = false; scrim.hidden = false; sheet.querySelector('.x').focus(); loadNotes(id); }
+    function openSheet(id) { openId = id; openNotes = []; openPhotos = []; renderSheet(); sheet.hidden = false; scrim.hidden = false; sheet.querySelector('.x').focus(); loadNotes(id); loadPhotos(id); }
+
+    // Customer photos live in a private folder named after the lead; links last an hour.
+    async function loadPhotos(id) {
+      const bucket = sb.storage.from('lead-photos');
+      const { data: files, error } = await bucket.list(id, { limit: 20, sortBy: { column: 'name', order: 'asc' } });
+      if (error || !files?.length) return;
+      const paths = files.filter((f) => f.name && !f.name.startsWith('.')).map((f) => `${id}/${f.name}`);
+      const { data: signed } = await bucket.createSignedUrls(paths, 3600);
+      if (openId !== id || !signed) return;
+      openPhotos = signed.filter((s) => s.signedUrl).map((s) => ({ path: s.path, url: s.signedUrl }));
+      renderSheet();
+    }
     function closeAll() {
       if (!$('#inv-form').hidden) { $('#inv-form').hidden = true; if (openId) return; } // the invoice form closes back to the lead
       openId = null; sheet.hidden = true; $('#new-form').hidden = true; scrim.hidden = true;
@@ -630,6 +732,7 @@
             <dt>Came from</dt><dd>${esc(l.source)}</dd>
           </dl>
           ${l.message ? `<p class="quote"><small>${l.source === 'Website quote form' ? 'From the website form' : 'What they asked for'}</small>${esc(l.message)}</p>` : ''}
+          ${openPhotos.length ? `<div><h3 class="h3">Photos from the customer</h3><div class="photo-grid">${openPhotos.map((p, i) => `<a href="${esc(p.url)}" target="_blank" rel="noopener"><img src="${esc(p.url)}" alt="Customer photo ${i + 1}" loading="lazy"></a>`).join('')}</div></div>` : ''}
           <div class="grid2">
             <label class="f">Estimate ($)<input id="d-est" type="number" min="0" step="5" inputmode="numeric" value="${l.estimate ?? ''}" placeholder="0"></label>
             ${dateField}
@@ -639,6 +742,11 @@
             ${invs.length ? `<ul class="inv-list">${invs.map((i) => `<li><span><strong>#${i.number}</strong> · ${esc(usd(i.total))} · ${i.emailed_at ? 'emailed ' + ago(ts(i.emailed_at)) : 'not emailed yet'}</span>
               <span class="acts"><button class="btn" type="button" data-inv-pdf="${i.id}">Download PDF</button><button class="btn" type="button" data-inv-email="${i.id}">${i.emailed_at ? 'Email again' : 'Email it'}</button></span></li>`).join('')}</ul>` : ''}
             <button class="linkbtn" type="button" id="d-invoice" style="margin-top:8px">${invs.length ? '+ Another invoice' : 'Create invoice'}</button>
+          </div>` : ''}
+          ${l.stage === 'done' ? `<div class="review-box">
+            <h3 class="h3">Ask for a review</h3>
+            <p class="review-text" id="d-review-text">${esc(reviewMessage(l.name, REVIEW_URL))}</p>
+            <div class="acts"><a class="btn btn-primary" id="d-review-sms" href="${esc(smsHref(l.phone, reviewMessage(l.name, REVIEW_URL)))}">Text it to ${esc(l.name.split(' ')[0])}</a><button class="btn" type="button" id="d-review-copy">Copy message</button></div>
           </div>` : ''}
           <div>
             <h3 class="h3">Notes &amp; history</h3>
@@ -670,12 +778,19 @@
       });
 
       sheet.querySelector('#d-invoice')?.addEventListener('click', () => openInvoiceForm(l));
+      sheet.querySelector('#d-review-sms')?.addEventListener('click', () => addNote(l.id, 'Review request texted'));
+      sheet.querySelector('#d-review-copy')?.addEventListener('click', () => {
+        const text = reviewMessage(l.name, REVIEW_URL);
+        Promise.resolve().then(() => navigator.clipboard.writeText(text))
+          .then(() => { toast('Review message copied'); addNote(l.id, 'Review request copied to send'); }, () => toast('Select the message above to copy it'));
+      });
       sheet.querySelectorAll('[data-inv-pdf]').forEach((b) => b.addEventListener('click', () => downloadInvoice(invoices.find((i) => i.id === b.dataset.invPdf))));
       sheet.querySelectorAll('[data-inv-email]').forEach((b) => b.addEventListener('click', () => sendInvoice(invoices.find((i) => i.id === b.dataset.invEmail), b)));
 
       const del = sheet.querySelector('#d-delete');
       del.addEventListener('click', async () => {
         if (!del.dataset.armed) { del.dataset.armed = '1'; del.textContent = 'Click again to delete for good'; return; }
+        if (openPhotos.length) await sb.storage.from('lead-photos').remove(openPhotos.map((p) => p.path));
         const { error } = await sb.from('leads').delete().eq('id', l.id);
         if (error) return fail(error, 'The delete');
         leads = leads.filter((x) => x.id !== l.id);
@@ -812,7 +927,7 @@
     });
 
     // Re-check "time since" labels every minute
-    setInterval(() => { if (!$('#app').hidden) { renderStats(); renderTodo(); renderBoard(); } }, 60e3);
+    setInterval(() => { if (!$('#app').hidden) { renderStats(); renderTodo(); renderView(); } }, 60e3);
   </script>
 </body>
 </html>
