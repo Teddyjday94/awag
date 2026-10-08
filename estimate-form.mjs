@@ -1,4 +1,8 @@
+import { CRM_URL, CRM_KEY } from './crm-config.mjs';
+
 const ESTIMATE_ENDPOINT = 'https://formsubmit.co/ajax/thomasdbiz26@gmail.com';
+const LEAD_ENDPOINT = `${CRM_URL}/rest/v1/rpc/submit_estimate`;
+const SEND_ERROR = 'Your estimate request could not be sent. Please try again or call us.';
 
 const clean = (value) => String(value ?? '').trim();
 
@@ -26,14 +30,19 @@ export function buildEstimatePayload(fields) {
   };
 }
 
-export async function submitEstimateRequest(fields, fetchImpl = fetch) {
-  if (clean(fields._honey)) return { ok: true };
+export function buildLeadPayload(fields) {
+  return {
+    p_name: clean(fields.name),
+    p_phone: clean(fields.phone),
+    p_email: clean(fields.email),
+    p_address: clean(fields.address),
+    p_service: clean(fields.service),
+    p_message: clean(fields.message),
+    p_honey: clean(fields._honey),
+  };
+}
 
-  const errors = validateEstimate(fields);
-  if (Object.keys(errors).length) {
-    throw new Error(Object.values(errors)[0]);
-  }
-
+async function sendEstimateEmail(fields, fetchImpl) {
   const response = await fetchImpl(ESTIMATE_ENDPOINT, {
     method: 'POST',
     headers: {
@@ -43,13 +52,43 @@ export async function submitEstimateRequest(fields, fetchImpl = fetch) {
     body: JSON.stringify(buildEstimatePayload(fields)),
   });
 
-  if (!response.ok) {
-    throw new Error('Your estimate request could not be sent. Please try again or call us.');
-  }
+  if (!response.ok) throw new Error(SEND_ERROR);
 
   const data = await response.json();
   if (data.success === false || data.success === 'false') {
-    throw new Error(data.message || 'Your estimate request could not be sent. Please try again or call us.');
+    throw new Error(data.message || SEND_ERROR);
+  }
+}
+
+export async function saveLeadToCrm(fields, fetchImpl = fetch) {
+  const response = await fetchImpl(LEAD_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: CRM_KEY,
+    },
+    body: JSON.stringify(buildLeadPayload(fields)),
+  });
+  if (!response.ok) throw new Error(SEND_ERROR);
+}
+
+// The email and the lead board are sent side by side. The request only fails
+// when neither one went through, so one outage never loses a customer.
+export async function submitEstimateRequest(fields, fetchImpl = fetch) {
+  if (clean(fields._honey)) return { ok: true };
+
+  const errors = validateEstimate(fields);
+  if (Object.keys(errors).length) {
+    throw new Error(Object.values(errors)[0]);
+  }
+
+  const [email, lead] = await Promise.allSettled([
+    sendEstimateEmail(fields, fetchImpl),
+    saveLeadToCrm(fields, fetchImpl),
+  ]);
+
+  if (email.status === 'rejected' && lead.status === 'rejected') {
+    throw email.reason instanceof Error ? email.reason : new Error(SEND_ERROR);
   }
 
   return { ok: true };
