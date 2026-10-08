@@ -15,8 +15,13 @@ Without this, the emailed sign-in link sends people to localhost.
 
 ## Who can see leads
 
-Anyone can request a sign-in link, but only emails in the `staff` table see
-any data. To add someone, run in the SQL editor:
+Staff sign in with their email and a password. The first time (or after
+forgetting it), they tap "First time here, or forgot your password?", get an
+emailed link, and choose a password when it opens. "Change password" on the
+board changes it later.
+
+Anyone can request that link, but only emails in the `staff` table see any
+data. To add someone, run in the SQL editor:
 
 ```sql
 insert into public.staff (email) values ('name@example.com');
