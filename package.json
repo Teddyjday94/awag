@@ -1,0 +1,20 @@
+{
+  "name": "ascensionwashngeaux",
+  "version": "1.0.0",
+  "description": "Ascension Wash N' Geaux - Professional pressure washing and soft washing services",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "pressure-washing",
+    "soft-washing",
+    "gonzales",
+    "louisiana"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vercel/analytics": "^1.3.1"
+  }
+}
